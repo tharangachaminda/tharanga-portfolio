@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{% block container %}
+    <div class="top-pad">
+        {% for work in mywork %}
+            <div class="card">
+                <h4>{{ work['title'] }}</h4>
+                {{ work['description']|safe }}
+                <a href="{{ work['github'] }}" target="_blank">Github</a>
+                <div>
+                    {% for icon in work['icons'] %}
+                        <span>{{ icon }}, </span>
+                    {% endfor %} 
+                </div>                               
+            </div>
+        {% endfor %}
+    </div>
+{% endblock %}
