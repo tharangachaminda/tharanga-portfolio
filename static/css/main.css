@@ -1,6 +1,16 @@
-body {
-    padding-top: 50px;
-  }
-  .top-pad {
-    padding: 20px 15px;
-  }
+.top-pad {
+  padding: 20px 15px;
+}
+
+.sm-icon {
+  width: 32px;
+  height: auto;
+}
+
+.card-shadow {
+  box-shadow: 0px 0px 10px 2px #141414;
+}
+
+.card-shadow:hover {
+  box-shadow: 0px 0px 15px 2px #2c2c2c;
+}

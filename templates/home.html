@@ -2,17 +2,31 @@
 
 {% block container %}
     <div class="top-pad">
+        <div class="row">
         {% for work in mywork %}
-            <div class="card">
-                <h4>{{ work['title'] }}</h4>
-                {{ work['description']|safe }}
-                <a href="{{ work['github'] }}" target="_blank">Github</a>
-                <div>
-                    {% for icon in work['icons'] %}
-                        <span>{{ icon }}, </span>
-                    {% endfor %} 
-                </div>                               
-            </div>
+            
+                <div class="col-6">
+                    <div class="card mb-3 card-shadow">
+                        <h5 class="card-header">
+                            {{ work['header'] }}
+                        </h5>
+                        <div class="card-body">
+                            <h5 class="card-title">{{ work['title'] }}</h5>
+                            <p class="card-text text-sm" style="font-size: 15px;">
+                                {{ work['description']|safe }}
+                            </p>
+                            <div style="text-align: right;">
+                                <a class="card-link" href="{{ work['github'] }}" target="_blank"><img class="sm-icon" src="{{ url_for("static", filename="assets/images/github.png") }}" /></a>
+                                {% for icon in work['icons'] %}
+                                    <a class="card-link"><img class="sm-icon" src="{{ url_for("static", filename="assets/images/") }}{{icon}}.png" /></a>
+                                {% endfor %}  
+                            </div>
+                        </div>
+                                                     
+                    </div>
+                </div>            
+            
         {% endfor %}
+        </div>
     </div>
 {% endblock %}
