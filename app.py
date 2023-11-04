@@ -57,6 +57,23 @@ my_work = [
         'icons': ['Python', 'jupyterlab', 'flask', 'heroku']
     },
 
+    {
+        'header': 'End-to-end',
+        'image': 'mood_classifier.png',
+        'title': 'Mood Classifier',
+        'description': "A mood classification is a type of machine learning task that is used to recognize human moods or emotions. In this project I have implement a CNN model for recognizing smiling or not smiling humans using Tensorflow Keras Sequential API.",
+        'github': 'https://github.com/tharangachaminda/cnn_mood_classifier',
+        'icons': ['python', 'jupyterlab', 'tensorflow', 'flask', 'heroku']
+    },
+
+    {
+        'header': 'End-to-end',
+        'image': 'sign_language_digits.png',
+        'title': 'Sign Language Digits Recognition',
+        'description': "Sing language is a visual-gestural language used by deaf and hard-to-hearing individuals to convey imformation, thoughts and emotions. In this project I have implement a CNN model for recognizing sign language digits using Keras Functional API.",
+        'github': 'https://github.com/tharangachaminda/cnn_sign_language_detection',
+        'icons': ['python', 'jupyterlab', 'tensorflow', 'flask', 'heroku']
+    },
     
 ]
 
