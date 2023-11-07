@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block container %}
+
+<div class="container top-pad">
+    <h2>Mood Classification</h2>
+    <p>You can upload your own image and see what the model says about it.</p>
+    
+    <form class="no-submit-form">
+        <div class="form-group mb-2">
+            <label for=""image_file>Pick your image</label>
+            <input class="form-control" type="file" id="image_file" />
+            <small class="form-text text-muted">Try to pick squared image. Max size: 1 Mb</small>
+        </div>     
+        <div class="form-group">
+            <button class="btn btn-dark" id="upload_image_btn">Updoad</button>
+        </div>  
+        <div id="error_mgs" class="text-danger"></div> 
+        <div id="result"></div>
+    </form>    
+</div>
+
+{% endblock %}

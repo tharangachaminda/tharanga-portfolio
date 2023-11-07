@@ -1,6 +1,16 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, request, jsonify
+from PIL import Image
+import os
+import numpy as np
+
+import tensorflow as tf
 
 app = Flask(__name__)
+
+mood_class_strings = ['Sad', 'Happy']
+model_obj = tf.keras.models.load_model('ML_models/happy_model.keras')
+up_path = os.path.join(os.getcwd(), 'static', 'assets', 'temp')
+print(up_path)
 
 my_work = [
     {
@@ -74,13 +84,59 @@ my_work = [
         'github': 'https://github.com/tharangachaminda/cnn_sign_language_detection',
         'icons': ['python', 'jupyterlab', 'tensorflow', 'flask', 'heroku']
     },
-    
+
 ]
+
 
 @app.route("/")
 def home():
     return render_template('home.html', mywork=my_work)
 
+
+@app.route("/mood_detection")
+def mood_detection():
+    model_summary = model_obj.summary()
+    # print(model_summary)
+    return render_template("mood_detection.html", mood_model={"model_obj": model_obj})
+
+
+@app.route("/predict_mood", methods=["POST"])
+def predict_mood():
+    image = request.files['image_file']
+    image.save(os.path.join(up_path, image.filename))
+    imageArray = imageToArray(os.path.join(up_path, image.filename))
+
+    mood_predict_prob = model_obj.predict(imageArray)
+    mood_predict_int = int(mood_predict_prob > 0.5)
+
+    print(mood_predict_prob)
+    return mood_class_strings[mood_predict_int]
+
+
+def imageToArray(imageName):
+    # Load the image and resize it to the desired dimensions
+    # image_path = f'images/{imageName}'
+    image_path = imageName
+    width, height = 64, 64
+
+    image = Image.open(image_path)
+    image = image.resize((width, height))
+    # print(image.width)
+    # Convert the image to a NumPy array and normalize the pixel values (if necessary)
+    image_array = np.asarray(image)
+    image_array = image_array / 255.  # Normalize the pixel values between 0 and 1
+
+    # plt.imshow(image_array)
+    # plt.show()
+
+    # print(image_array.shape)
+    # Reshape the image array to match the input shape of your model
+    # Assumes the input shape is (width, height, 3)
+    image_array = image_array.reshape(1, width, height, 3)
+
+    return image_array
+
+
 if __name__ == "__main__":
-    #app.run(host='0.0.0.0')
+    # app.run(host='0.0.0.0')
     app.run(debug=True)
