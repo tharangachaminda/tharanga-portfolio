@@ -24,6 +24,11 @@
   color: #dfdfdf;
 }
 
+.card-header a {
+ color: #fff;
+ text-decoration: none;
+}
+
 .card-body {
   background-color: #f3f3f3;
   min-height: 210px;

@@ -1,0 +1,7 @@
+{% block model_result %} {% if(message['type'] == 'error') %}
+<div class="text-danger">
+  <i class="bi bi-exclamation-circle"></i> {{ message['text'] | safe }}
+</div>
+{% else %}
+<div class="text-dark">{{ message['text'] | safe }}</div>
+{% endif %} {% endblock %}
