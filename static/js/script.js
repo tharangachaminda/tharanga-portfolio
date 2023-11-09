@@ -57,5 +57,59 @@ $(document).ready(function(){
           callback(reader)
         }
         reader.readAsDataURL(file);
-      }
+    }
+
+    // send data for banknotes authentication
+    $('#validate_banknote_btn').on('click', function(e){
+        
+        var formData = {
+            'variance': $('#variance').val(),
+            'skewness': $('#skewness').val(),
+            'curtosis': $('#curtosis').val(),
+            'entropy': $('#entropy').val()
+        }
+
+        //console.log(formData);
+        $.ajax({
+            url: '/banknotes_auth',
+            type: 'POST',
+            data: JSON.stringify(formData),
+            contentType: 'application/json',
+            success: function(data){
+                console.log(data);
+                $('#result').html(data)
+            }
+        });
+    });
+
+    // send data for black friday purchase prediction
+    $('#predict_black_friday_btn').on('click', function(e){
+
+        var formData = {
+            'gender': $("input[name='gender']:checked").val(),
+            'age': $('#age').val(),
+            'occupation': $('#occupation').val(),
+            'stay_in_current_city': $('#stay_in_city').val(),
+            'marital_status': $("input[name='marital_status']:checked").val(),
+            'product_main_category': $('#product_main_category').val(),
+            'product_category_1': $('#product_sub_category_1').val(),
+            'product_category_2': $('#product_sub_category_2').val(),
+            'city_category': $('#city_category').val()
+        }
+
+        // console.log(formData)
+
+        $.ajax({
+            url: '/black_friday_prediction',
+            type: 'POST',
+            data: JSON.stringify(formData),
+            contentType: 'application/json',
+            success: function(data) {
+                console.log(data)
+                $('#result').html(data)
+            }
+        });
+
+    });
+    
 });

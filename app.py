@@ -3,14 +3,18 @@ from PIL import Image
 import os
 import numpy as np
 import time
-
+import sklearn
+from sklearn.preprocessing import StandardScaler
 import tensorflow as tf
 
+import pickle
 app = Flask(__name__)
 
 mood_class_strings = ['Sad', 'Happy']
 mood_detection_model = tf.keras.models.load_model(
     'ML_models/happy_model.keras')
+with open('ML_models/lr_banknotes_model.pkl', 'rb') as f:
+    banknote_model = pickle.load(f)
 
 # this list is not essential. We can use model output index as the result. But for the consistancy of the program I'm using it here.
 sign_language_class_strings = [0, 1, 2, 3, 4, 5]
@@ -41,7 +45,7 @@ my_work = [
         'title': 'Banknotes Authentication',
         'description': "Banknote analysis refers to the examination of paper currency to determine its legitimacy and identify potential counterfeits. In this python project, I am trying to build a <b>Classification Machine Learning models</b> to predict banknotes are genuine or forged.",
         'github': 'https://github.com/tharangachaminda/banknotes_analysis',
-        'icons': ['python', 'jupyterlab', 'nltk', 'flask', 'heroku']
+        'icons': ['python', 'jupyterlab', 'flask', 'heroku']
     },
 
     {
@@ -59,7 +63,7 @@ my_work = [
         'title': 'Netflix Recommender System (Popularity Based)',
         'description': "Netflix Recommender system is one of the best recommender systems in the world. In this project I've used <b>movies and rating</b> datasets and <b>NLTK toolkit</b> to build this popularity based recommender system.",
         'github': 'https://github.com/tharangachaminda/popularity-based-recommendation-system',
-        'icons': ['Python', 'jupyterlab', 'flask', 'heroku']
+        'icons': ['Python', 'jupyterlab', 'nltk', 'flask', 'heroku']
     },
 
     {
@@ -207,6 +211,70 @@ def imageToArray(imageName):
 @app.route('/black_friday')
 def black_friday():
     return render_template('black_friday.html')
+
+
+@app.route('/black_friday_prediction', methods=['POST'])
+def black_friday_prediction():
+    if request.method == 'POST':
+        form_data = request.get_json()
+
+        city_category_options = np.array([1, 2, 3])
+        city_category_one_hot = city_category_options == int(
+            form_data['city_category'])
+        city_category_one_hot = np.array(
+            list(map(int, city_category_one_hot))).astype('float')
+
+        # prepare data array
+        input_data = np.array([
+            form_data['gender'],
+            form_data['age'],
+            form_data['occupation'],
+            form_data['stay_in_current_city'],
+            form_data['marital_status'],
+            form_data['product_main_category'],
+            form_data['product_category_1'],
+            form_data['product_category_2'],
+        ]).astype('float')
+
+        input_data_ = np.append(input_data, city_category_one_hot)
+        input_data_ = input_data_.reshape(-1, 1)
+
+        # scaling data using standardScaler
+        std_scaler = StandardScaler()
+        input_data_scalled = std_scaler.fit_transform(input_data_)
+
+        # predict now
+        input_data_final = input_data_scalled.reshape(1, -1)
+        print(input_data_final)
+
+        return render_template('model_result.html', message={"type": 'normal', 'text': str(input_data_final)})
+
+
+@app.route('/banknotes_authentication')
+def banknotes_authentication():
+    return render_template('banknotes_authentication.html')
+
+
+@app.route('/banknotes_auth', methods=['POST'])
+def banknotes_auth():
+    if request.method == 'POST':
+        form_data_json = request.get_json()
+
+        try:
+            model_input = np.array([
+                form_data_json['variance'],
+                form_data_json['skewness'],
+                form_data_json['curtosis'],
+                form_data_json['entropy']]).astype('float')
+
+            model_input = model_input.reshape(1, - 1)
+            predict = banknote_model.predict(model_input)
+        except:
+            return render_template('model_result.html', message={'type': 'error', 'text': f"Something went wrong!"})
+
+        output_str = ["invalid", "valid"]
+
+        return render_template('model_result.html', message={'type': 'normal', 'text': f"Model says it's a <b>{output_str[predict[0]]}</b> banknote."})
 
 
 if __name__ == "__main__":

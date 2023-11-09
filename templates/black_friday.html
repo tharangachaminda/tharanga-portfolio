@@ -9,7 +9,133 @@
             <p>Fill the form and predict the amount your customer will purchase on Black Friday.</p>
             <p class="alert alert-info"><i class="bi bi-info-circle-fill"></i> We can improve this model by changing the model architecture, and adding more training data. At this level I wanted to showcase my work towards implementation and deployment of Machine Learning model.</p>
             <form class="no-submit-form">
+                <div class="form-group mb-3">
+                    <div class="row">
+                        <div class="col">
+                            <label>Gender</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" value="1" name="gender" id="gender_male" checked>
+                                <label class="form-check-label" for="gender_male">
+                                    Male
+                                </label>
+                                </div>
+                                <div class="form-check">
+                                <input class="form-check-input" type="radio" value="0" name="gender" id="gender_female">
+                                <label class="form-check-label" for="gender_female">
+                                    Female
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="form-group mb-3">
+                                <label for="age">Age</label>
+                                <select class="form-select" id="age">
+                                    <option value="1">0 - 17</option>
+                                    <option value="5">18 - 25</option>
+                                    <option value="7">26 - 35</option>
+                                    <option value="6">36 - 45</option>
+                                    <option value="4">46 - 50</option>
+                                    <option value="3">51 - 55</option>
+                                    <option value="2">55+</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="form-group">
+                                <label>Marital status</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" value="1" name="marital_status" id="marital_status_married" checked>
+                                    <label class="form-check-label" for="marital_status_maried">
+                                        Married
+                                    </label>
+                                    </div>
+                                    <div class="form-check">
+                                    <input class="form-check-input" type="radio" value="0" name="marital_status" id="marital_status_single">
+                                    <label class="form-check-label" for="marital_status_single">
+                                        Single
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                </div>
+
+                <div class="form-group mb-3">
+                    <label for="age">Occupation</label>
+                    <select class="form-select" id="occupation">
+                        {% for i in range(21) %}
+                        <option value="{{i}}">Occupation {{i + 1}}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="row">
+                    <div class="col">
+                        <div class="form-group mb-3">
+                            <label for="city_category">City category</label>
+                            <select class="form-select" id="city_category">
+                                <option value="1">City category A</option>
+                                <option value="2">City category B</option>
+                                <option value="3">City category C</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="form-group mb-3">
+                            <label for="stay_in_city">How long have you been living in the city?</label>
+                            <select class="form-select" id="stay_in_city">
+                                <option value="1">1 Year</option>
+                                <option value="2">2 Years</option>
+                                <option value="3">3 Years</option>
+                                <option value="4">4 Years or above</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col">
+                        <div class="form-group mb-3">
+                            <label for="product_main_category">Product main category</label>
+                            <select class="form-select" id="product_main_category">
+                               {% for i in range(21) %}
+                                    <option value={{ i + 1 }}>Category {{ i + 1 }}</option>
+                               {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="form-group mb-3">
+                            <label for="product_sub_category_1">Product sub category 1</label>
+                            <select class="form-select" id="product_sub_category_1">
+                               {% for i in range(21) %}
+                                    <option value={{ i + 1 }}> Sub category {{ i + 1 }}</option>
+                               {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="form-group mb-3">
+                            <label for="product_sub_category_2">Product sub category 2</label>
+                            <select class="form-select" id="product_sub_category_2">
+                               {% for i in range(21) %}
+                                    <option value={{ i + 1 }}>Sub category {{ i + 1 }}</option>
+                               {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
                 
+                <div class="form-group mb-3">
+                    <button class="btn btn-dark" id="predict_black_friday_btn">Predict purchase amount</button>
+                </div>
+
+                <div id="error_mgs" class="text-danger"></div> 
+                <div class="row">
+                    <div id="image_preview" class="col-3"></div>
+                    <div id="result" class="col-9">{% block model_result %}{% endblock %}</div>
+                </div>
             </form>
         </div>
         <div class="col">
