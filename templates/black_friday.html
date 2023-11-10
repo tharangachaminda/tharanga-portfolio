@@ -132,17 +132,26 @@
                 </div>
 
                 <div id="error_mgs" class="text-danger"></div> 
-                <div class="row">
-                    <div id="image_preview" class="col-3"></div>
-                    <div id="result" class="col-9">{% block model_result %}{% endblock %}</div>
-                </div>
+                <div id="result">{% block model_result %}{% endblock %}</div>
             </form>
         </div>
         <div class="col">
             <h2>Model summary</h2>
+            <p>In this dataset we have a set of <b>Categorical Independent Variables</b> and <b>Continuous Dependent Variable</b>. Based on the analysis I prefered to try out following algorithms.</p>
+            <ol>
+                <li>Decision Tree</li>
+                <li>Random Forest</li>
+                <li>Support Vector Regression (SVR) </li>
+                <li>Neural Networks also a prefered option.</li>
+            </ol>
+            <p>I used GridSearchCV to search for optimal hyperparameters.</p>
             <pre>
-                
+Best params:  {'max_depth': 10, 'min_samples_leaf': 10, 'min_samples_split': 50}
+Best score:  0.6528669709738966
+Best estimator:  
+DecisionTreeRegressor(max_depth=10, min_samples_leaf=10, min_samples_split=50)
             </pre>
+
         </div>
     </div>    
 </div>

@@ -16,6 +16,9 @@ mood_detection_model = tf.keras.models.load_model(
 with open('ML_models/lr_banknotes_model.pkl', 'rb') as f:
     banknote_model = pickle.load(f)
 
+with open('ML_models/Blackfriday_DT_model.pkl', 'rb') as f:
+    black_friday_dt_model = pickle.load(f)
+
 # this list is not essential. We can use model output index as the result. But for the consistancy of the program I'm using it here.
 sign_language_class_strings = [0, 1, 2, 3, 4, 5]
 sign_language_model = tf.keras.models.load_model(
@@ -246,8 +249,9 @@ def black_friday_prediction():
         # predict now
         input_data_final = input_data_scalled.reshape(1, -1)
         print(input_data_final)
+        pred = black_friday_dt_model.predict(input_data_final)
 
-        return render_template('model_result.html', message={"type": 'normal', 'text': str(input_data_final)})
+        return render_template('model_result.html', message={"type": 'normal', 'text': f"Predicted purchase amount for above customer: <b>${str(round(pred[0], 2))}</b>"})
 
 
 @app.route('/banknotes_authentication')
