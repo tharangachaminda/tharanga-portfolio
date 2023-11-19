@@ -161,3 +161,7 @@ cython_debug/
 
 # uploaded temp images
 static/images/temp/
+
+# machine learning models
+ML_models/
+

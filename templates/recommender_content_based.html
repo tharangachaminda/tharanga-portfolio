@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block container %}
+<div class="container top-pad">    
+    <div class="row">
+        <div class="col">
+            <h2>Movie Recommender System (content based)</h2>
+            <p>Enter your favorite movie and get recommendations for you.</p>
+            <div class="alert alert-info"><i class="bi bi-info-circle-fill"></i> I have used following tools and technologies for this project.
+                <ol>
+                    <li>RAKE (Rapid Automatic Keyword Extraction) <a href="https://csurfer.github.io/rake-nltk/_build/html/index.html" target="_blank">rake_nltk</a> algorithm</li>
+                    <li>Cosine Similarity</li>
+                    <li>Document term frequency</li>
+                    <li>Bag of words</li>
+                    <li>CountVentorizer() for converting bag of words to numeric data.</li>
+                </ol>
+            </div>
+            <form class="no-submit-form">
+                <div class="form-group mb-2">
+                    <label for=""your_movie>Your movie</label>
+                    <input class="form-control" type="text" id="your_movie" />
+                </div>     
+                <div class="form-group mb-2">
+                    <button class="btn btn-dark" id="recommend_movies">Submit</button>
+                </div>  
+                <div id="error_mgs" class="text-danger"></div> 
+                <div class="row">
+                    <div id="image_preview" class="col-3"></div>
+                    <div id="result" class="col-9">{% block model_result %}{% endblock %}</div>
+                </div>
+            </form>
+        </div>        
+    </div>    
+</div>
+
+{% endblock %}
