@@ -1,0 +1,44 @@
+body {
+  background: #f7f7f7;
+}
+
+.top-pad {
+  padding: 20px 15px;
+}
+
+.sm-icon {
+  width: 32px;
+  height: auto;
+}
+
+.card {
+  min-height: 230px;
+}
+
+.card-shadow {
+  box-shadow: 0px 0px 4px 2px #c5c5c5;
+}
+
+.card-shadow:hover {
+  box-shadow: 0px 0px 6px 2px #9a9a9a;
+}
+
+.card-header {
+  background-color: #4d5c6b;
+  color: #dfdfdf;
+}
+
+.card-header a {
+ color: #fff;
+ text-decoration: none;
+}
+
+.card-body {
+  background-color: #f3f3f3;
+  min-height: 210px;
+}
+
+.card-image {
+  background-size: cover;
+  background-position: center;
+}

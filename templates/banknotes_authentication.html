@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block container %}
+
+<div class="container top-pad">    
+    <div class="row">
+        <div class="col">
+            <h2>Banknotes Authentication</h2>
+            <p>You can enter your own values and check your banknote is a valid one or not.</p>
+            <p class="alert alert-info"><i class="bi bi-info-circle-fill"></i> We can improve this model by changing the model architecture, and adding more training data. At this level I wanted to showcase my work towards implementation and deployment of Machine Learning model.</p>
+            <form id="bank_auth_form" class="no-submit-form">
+                <div class="form-group mb-2">
+                    <label for="variance">Variance</label>
+                    <input type="number" class="form-control" id="variance" step="0.00001" />
+                </div>
+                <div class="form-group mb-2">
+                    <label for="skewness">Skewness</label>
+                    <input type="number" class="form-control" id="skewness" step="0.00001" />
+                </div>
+                <div class="form-group mb-2">
+                    <label for="curtosis">Curtosis</label>
+                    <input type="number" class="form-control" id="curtosis" step="0.00001" />
+                </div>
+                <div class="form-group mb-2">
+                    <label for="entropy">Entropy</label>
+                    <input type="number" class="form-control" id="entropy" step="0.00001" />
+                </div>
+                <div class="form-group mb-2">
+                    <button class="btn btn-dark" id="validate_banknote_btn">Predict</button>
+                </div>
+                <div id="error_mgs" class="text-danger"></div> 
+                <div id="result" class="col-9">{% block model_result %}{% endblock %}</div>
+            </form>
+        </div>
+        <div class="col">
+            <h2>Model summary</h2>
+            In <a href="https://github.com/tharangachaminda/banknotes_analysis" target="_blank">this</a> project I have trained data on 4 algorithms.
+            <ol>
+                <li>Logistic Regression Classifier
+                <li>Random Forest Classifier
+                <li>KNN Classifier
+                <li>Support Vector Classifier
+            </ol>
+            <p>Among them, KNN and Logistic Regression shows accuracy ~100%</p>
+            <h5>Classification Report (Logistic Regression)</h5>
+            <pre>
+                precision    recall  f1-score   support
+
+           0       1.00      1.00      1.00       240
+           1       0.99      0.99      0.99       172
+
+    accuracy                           1.00       412
+   macro avg       1.00      1.00      1.00       412
+weighted avg       1.00      1.00      1.00       412
+            </pre>
+            <h5>Confusion Matrix (Logistic Regression)</h5>
+            <img src="{{ url_for('static', filename='assets/images/banknote_auth/confution_matrix_LR.png') }}" width=450 />
+        </div>
+    </div>    
+</div>
+
+{% endblock %}
