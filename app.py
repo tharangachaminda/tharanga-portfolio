@@ -18,6 +18,15 @@ import sqlite3
 import sqlalchemy
 import datetime
 
+# Recomender system imports
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.feature_extraction.text import CountVectorizer # Document Term Frequency
+import rake_nltk
+from rake_nltk import Rake
+import nltk
+nltk.download('stopwords')
+nltk.download('punkt')
+
 # fetch data from SQlite database abd create a dataframe
 con = sqlite3.connect("./dashboards/falcon9/falcon9.db")
 cur = con.cursor()
@@ -754,6 +763,119 @@ falcon_dash_app.layout = html.Div(
     }
 )
 
+# Recommender system
+recommender_system_df = pd.read_csv('https://query.data.world/s/uikepcpffyo2nhig52xxeevdialfl7')
+recommender_system_df = recommender_system_df[['Title', 'Year', 'Genre','Director','Actors','Plot', 'Poster', 'imdbRating']]
+
+def recomender_preprocessing(movie_df):
+    # data preprocessing for recomender system
+    # set lowercase and split on commas
+    movie_df['Actors'] = movie_df['Actors'].map(lambda x: x.lower().split(','))
+    movie_df['Genre'] = movie_df['Genre'].map(lambda x: x.lower().split(','))
+    movie_df['Director'] = movie_df['Director'].map(lambda x: x.lower().split(' '))
+
+    # join Actors and Director names as a single string
+    for index, row in movie_df.iterrows():
+        #print(index)
+        movie_df['Actors'][index] = [x.replace(' ', '') for x in row['Actors']]
+        movie_df['Director'][index] = ''.join(row['Director'])
+    
+    return movie_df
+
+recommender_system_df = recomender_preprocessing(recommender_system_df)
+
+# Extract keywords using Rake()
+
+def extract_keywords(movie_df):
+    movie_df['Key_words'] = "" # initialize the column for storing keywords
+    
+    for index, row in movie_df.iterrows():
+        plot = row['Plot']
+        
+        # initiate Rake
+        r = Rake()
+        
+        # extracting the words by passing the text
+        r.extract_keywords_from_text(plot)
+        
+        # preparing a dictionary with keywords and their scores
+        keyword_dict_score = r.get_word_degrees()
+        
+        # assign keywords to the new column
+        row['Key_words'] = list(keyword_dict_score.keys())
+       
+    # we do not need 'Plot' column anymore
+    movie_df.drop('Plot', axis=1, inplace=True)
+    
+    # set Title as index, then we can easily identify records rather than using numerical indices
+    movie_df.set_index('Title', inplace=True)
+    
+    return movie_df 
+
+recommender_system_df = extract_keywords(recommender_system_df)
+
+# create bag of words
+def create_bag_of_words(movie_df):
+    # initialize bag_of_words column
+    movie_df['bag_of_words'] = ""
+    
+    columns = movie_df.columns
+    for index, row in movie_df.iterrows():
+        words = ''
+        for col in columns:
+            if col == 'Director':
+                #print(row[col])
+                words += row[col] + ' '
+            elif col == 'Actors':
+                words += ' '.join(row[col]) + ' '
+        movie_df['bag_of_words'][index] = words
+        
+    # now we only need the index and the bag_of_words column. So, we drop other columns
+    keep_cols = ['bag_of_words', 'Title', 'Year', 'Director', 'Poster', 'imdbRating']
+    movie_df.drop([col for col in columns if col not in keep_cols], axis=1, inplace=True)
+    
+    return movie_df
+
+recommender_system_df = create_bag_of_words(recommender_system_df)
+
+# apply Countervectorizer
+# this tokenize the words by counting the frequesncy. This is needed for calculate Cosine similarity
+# after that in the same function cosine_similarity finction is also applied and return cosine_sim matrix
+def count_vectorizer(df):
+    count_vector = CountVectorizer()
+    count_matrix = count_vector.fit_transform(df['bag_of_words'])
+    
+    cosine_sim = cosine_similarity(count_matrix, count_matrix)
+    
+    return cosine_sim
+
+cosine_sim = count_vectorizer(recommender_system_df)
+
+# implement recomender function
+indeces = pd.Series(recommender_system_df.index)
+
+def recommender(title, cosine_sim=cosine_sim):
+    recommendations = []
+    
+    # get relevant indeces
+    if len(indeces[indeces == title]) > 0:
+        search_idx = indeces[indeces == title].index[0]
+    else:
+        return []
+    
+    similarities = pd.Series(cosine_sim[search_idx]).sort_values(ascending=False)
+    
+    # get top 10 matches (indexes)
+    # use this indexes again to retrieve movie titles
+    top_10_matches = list(similarities.iloc[1:11].index)
+    print(top_10_matches)
+    
+    # store best matched titles
+    for i in top_10_matches:
+        recommendations.append(indeces[i])
+        
+    return recommendations
+
 # load saved model files
 mood_class_strings = ['Sad', 'Happy']
 mood_detection_model = tf.keras.models.load_model(
@@ -1082,9 +1204,34 @@ def sign_language_recognition_resnet():
 def alpaca_mobilenetv2():
     return render_template('alpaca_mobilenetv2.html')
 
-@app.route('/recommender_content_based')
+@app.route('/recommender_content_based', methods=['GET', 'POST'])
 def recommender_content_based():
-    return render_template('recommender_content_based.html')   
+    if request.method == 'GET':
+        return render_template('recommender_content_based.html', options=recommender_system_df.index)
+    elif request.method == 'POST':
+        input_movie = request.get_json()
+        
+        output_message_type = "normal"
+        grid_info = []
+        
+        recommended_movies = recommender(input_movie['input_movie'])
+                
+        #print(recommended_movies)
+        if len(recommended_movies) == 0:
+            recommended_movies = "No result found"
+            output_message_type = "warning"
+        else:            
+            for movie in recommended_movies:
+                grid_info.append({
+                    'title': movie,
+                    'year': recommender_system_df.loc[movie]['Year'],
+                    'director': recommender_system_df.loc[movie]['Director'].capitalize(),
+                    'poster': recommender_system_df.loc[movie]['Poster'],
+                    'imdb': recommender_system_df.loc[movie]['imdbRating']
+                })
+        
+        return render_template('info_grid.html', message={'type': output_message_type, 'text': recommended_movies, 'grid_info': grid_info})
+
 
 if __name__ == "__main__":
     # app.run(host='0.0.0.0')
