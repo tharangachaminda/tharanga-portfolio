@@ -5,6 +5,10 @@ $(document).ready(function(){
     });
 
     // Upload image for mood detection
+    $('.predict-btn').on('click', function(e){
+        $('#result').html('Processing...')
+    });
+
     $('#upload_image_btn').on('click', function(e){
         var cnn_task = $(this).data('task');
         
@@ -16,7 +20,7 @@ $(document).ready(function(){
             var image_obj = image_file[0];
             var image_size = parseFloat(image_obj.size / (1024 * 1024));
 
-            if(image_size > 1) {
+            if(image_size > 2) {
                 $('#error_mgs').html('Max size exceeded.!' + image_size)
             } else {
                 $('#error_mgs').html('')
