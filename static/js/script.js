@@ -115,5 +115,27 @@ $(document).ready(function(){
         });
 
     });
+
+    // Recomender system
+    $('#recommend_movies').on('click', function(e){
+        var input_movie = $('#your_movie').val()
+
+        if(input_movie == "") {
+            $('#error_mgs').html('Please enter a movie title.')
+        } else {
+            $.ajax({
+                url: '/recommender_content_based',
+                type: 'POST',
+                data: JSON.stringify({
+                    'input_movie': input_movie
+                }),
+                contentType: 'application/json',
+                success: function(data) {
+                    console.log(data)
+                    $('#result').html(data)
+                }
+            });
+        }        
+    });
     
 });

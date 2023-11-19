@@ -1,0 +1,33 @@
+{% block model_result %} 
+    {% if(message['type'] == 'error') %}
+        <div class="text-danger">
+            <i class="bi bi-exclamation-circle"></i> {{ message['text'] | safe }}
+        </div>
+    {% elif(message['type'] == 'info') %}
+        <div class="text-info">
+            <i class="bi bi-info-circle"></i> {{ message['text'] | safe }}
+        </div>
+    {% elif(message['type'] == 'warning') %}
+        <div class="text-warning">
+            <i class="bi bi-exclamation-circle"></i> {{ message['text'] | safe }}
+        </div>
+    {% else %}
+        {% for grid_info in message['grid_info'] %}
+            <div class="col-3">
+                <div class="card mb-3" style="box-shadow: 0px 0px 10px -2px #ababab;">
+                    
+                    <img class="card-img-top" src="{{ grid_info['poster'] }}" onerror="this.src='{{ url_for('static', filename='assets/images/no-image.png') }}'" alt="{{ grid_info['title'] }}" style="height: 448px;" />
+                    
+                    <div class="card-body">
+                        <p class="card-text">
+                        <h5>{{ grid_info['title'] | safe }}</h5>
+                        Released Year: <b>{{ grid_info['year'] }}</b><br/>
+                        imdb: <b>{{ grid_info['imdb'] }}</b><br />
+                        Directed by <b>{{ grid_info['director'] }}</b>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    {% endif %} 
+{% endblock %}

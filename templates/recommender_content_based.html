@@ -18,15 +18,19 @@
             <form class="no-submit-form">
                 <div class="form-group mb-2">
                     <label for=""your_movie>Your movie</label>
-                    <input class="form-control" type="text" id="your_movie" />
+                    <input class="form-control" list="movie_list_options" type="text" id="your_movie" placeholder="Type to search movie..." />
+                    <datalist id="movie_list_options">
+                        {% for option in options  %}
+                        <option value="{{ option }}">
+                        {% endfor %}
+                    </datalist>
                 </div>     
                 <div class="form-group mb-2">
-                    <button class="btn btn-dark" id="recommend_movies">Submit</button>
+                    <button class="btn btn-dark" id="recommend_movies">Get top 10 recommendations</button>
                 </div>  
                 <div id="error_mgs" class="text-danger"></div> 
-                <div class="row">
-                    <div id="image_preview" class="col-3"></div>
-                    <div id="result" class="col-9">{% block model_result %}{% endblock %}</div>
+                <div class="row" id="result" >
+                    {% block model_result %}{% endblock %}
                 </div>
             </form>
         </div>        
