@@ -5,9 +5,15 @@ $(document).ready(function(){
     });
 
     // Upload image for mood detection
-    $('.predict-btn').on('click', function(e){
-        $('#result').html('Processing...')
-    });
+    
+    function show_hide_spinner(is_show) {
+        $('#error_mgs').html('')
+        if(is_show){
+            $('#spinner_block').show()
+        } else {
+            $('#spinner_block').hide()
+        }
+    }
 
     $('#upload_image_btn').on('click', function(e){
         var cnn_task = $(this).data('task');
@@ -17,6 +23,7 @@ $(document).ready(function(){
         if(image_file.length == 0) {
             $('#error_mgs').html('Please pick an image.')
         } else {
+            show_hide_spinner(true);
             var image_obj = image_file[0];
             var image_size = parseFloat(image_obj.size / (1024 * 1024));
 
@@ -45,6 +52,7 @@ $(document).ready(function(){
                     success: function(data) {
                         console.log(data);
                         $('#result').html(data)
+                        show_hide_spinner(false);
                     }
                 })
             }
@@ -65,25 +73,36 @@ $(document).ready(function(){
 
     // send data for banknotes authentication
     $('#validate_banknote_btn').on('click', function(e){
-        
-        var formData = {
-            'variance': $('#variance').val(),
-            'skewness': $('#skewness').val(),
-            'curtosis': $('#curtosis').val(),
-            'entropy': $('#entropy').val()
-        }
+        var variance = $('#variance').val();
+        var skewness = $('#skewness').val();
+        var curtosis = $('#curtosis').val();
+        var entropy  = $('#entropy').val() 
 
-        //console.log(formData);
-        $.ajax({
-            url: '/banknotes_auth',
-            type: 'POST',
-            data: JSON.stringify(formData),
-            contentType: 'application/json',
-            success: function(data){
-                console.log(data);
-                $('#result').html(data)
+        if(variance == "" || skewness == "" || curtosis == "" || entropy == "") {
+            $('#error_mgs').html('Please enter every vallue.')
+        } else {
+            show_hide_spinner(true);
+
+            var formData = {
+                'variance': variance,
+                'skewness': skewness,
+                'curtosis': curtosis,
+                'entropy': entropy
             }
-        });
+    
+            //console.log(formData);
+            $.ajax({
+                url: '/banknotes_auth',
+                type: 'POST',
+                data: JSON.stringify(formData),
+                contentType: 'application/json',
+                success: function(data){
+                    console.log(data);
+                    $('#result').html(data)
+                    show_hide_spinner(false);
+                }
+            });
+        }
     });
 
     // send data for black friday purchase prediction
@@ -102,6 +121,7 @@ $(document).ready(function(){
         }
 
         // console.log(formData)
+        show_hide_spinner(true);
 
         $.ajax({
             url: '/black_friday_prediction',
@@ -111,6 +131,7 @@ $(document).ready(function(){
             success: function(data) {
                 console.log(data)
                 $('#result').html(data)
+                show_hide_spinner(false);
             }
         });
 
@@ -123,6 +144,8 @@ $(document).ready(function(){
         if(input_movie == "") {
             $('#error_mgs').html('Please enter a movie title.')
         } else {
+            show_hide_spinner(true);
+
             $.ajax({
                 url: '/recommender_content_based',
                 type: 'POST',
@@ -131,8 +154,9 @@ $(document).ready(function(){
                 }),
                 contentType: 'application/json',
                 success: function(data) {
-                    console.log(data)
+                    //console.log(data)
                     $('#result').html(data)
+                    show_hide_spinner(false);
                 }
             });
         }        

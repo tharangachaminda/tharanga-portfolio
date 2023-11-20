@@ -765,6 +765,7 @@ falcon_dash_app.layout = html.Div(
 
 # Recommender system
 recommender_system_df = pd.read_csv('https://query.data.world/s/uikepcpffyo2nhig52xxeevdialfl7')
+recommender_system_df_orig = recommender_system_df[['Title', 'Year', 'Genre','Director','Actors','Plot', 'Poster', 'imdbRating']].set_index('Title')
 recommender_system_df = recommender_system_df[['Title', 'Year', 'Genre','Director','Actors','Plot', 'Poster', 'imdbRating']]
 
 def recomender_preprocessing(movie_df):
@@ -775,10 +776,15 @@ def recomender_preprocessing(movie_df):
     movie_df['Director'] = movie_df['Director'].map(lambda x: x.lower().split(' '))
 
     # join Actors and Director names as a single string
-    for index, row in movie_df.iterrows():
-        #print(index)
-        movie_df['Actors'][index] = [x.replace(' ', '') for x in row['Actors']]
-        movie_df['Director'][index] = ''.join(row['Director'])
+    movie_df['Actors'] = movie_df.apply(lambda row: [x.replace(' ', '') for x in row['Actors']], axis=1)
+    movie_df['Director'] = movie_df.apply(lambda row: ''.join(row['Director']), axis=1)
+    # for index, row in movie_df.iterrows():
+    #     #print(index)
+    #     row['Actors'] = [x.replace(' ', '') for x in row['Actors']]
+    #     row['Director'] = ''.join(row['Director'])
+        
+    #     movie_df.loc[:, ('Actors', index)] = row['Actors']
+    #     movie_df.loc[:, ('Director', index)] = row['Director']
     
     return movie_df
 
@@ -820,15 +826,20 @@ def create_bag_of_words(movie_df):
     movie_df['bag_of_words'] = ""
     
     columns = movie_df.columns
-    for index, row in movie_df.iterrows():
-        words = ''
-        for col in columns:
-            if col == 'Director':
-                #print(row[col])
-                words += row[col] + ' '
-            elif col == 'Actors':
-                words += ' '.join(row[col]) + ' '
-        movie_df['bag_of_words'][index] = words
+    # for index, row in movie_df.iterrows():
+    #     words = ''
+    #     for col in columns:
+    #         if col == 'Director':
+    #             #print(row[col])
+    #             words += row[col] + ' '
+    #         elif col == 'Actors':
+    #             words += ' '.join(row[col]) + ' '
+    #     movie_df.loc[:, ('bag_of_words', index)] = words
+    
+    movie_df['bag_of_words'] = movie_df.apply(
+        lambda row: bag_of_words_row(row['Actors'], row['Director']),
+        axis=1
+    )
         
     # now we only need the index and the bag_of_words column. So, we drop other columns
     keep_cols = ['bag_of_words', 'Title', 'Year', 'Director', 'Poster', 'imdbRating']
@@ -836,7 +847,16 @@ def create_bag_of_words(movie_df):
     
     return movie_df
 
+def bag_of_words_row(actors, director):
+    words = ''
+    words += director + ' '
+    words += ' '.join(actors) + ' '
+    
+    return words
+
 recommender_system_df = create_bag_of_words(recommender_system_df)
+print(recommender_system_df[['Director', 'bag_of_words']])
+#print(recommender_system_df)
 
 # apply Countervectorizer
 # this tokenize the words by counting the frequesncy. This is needed for calculate Cosine similarity
@@ -912,7 +932,7 @@ my_work = [
         'title': 'Black Friday Purchase Prediction',
         'description': "This project will understand the customer purchase behaviour (specifically, purchase amount) against various products of different categories. They have shared purchase summary of various customers for selected high volume products from last month.",
         'github': 'https://github.com/tharangachaminda/Black_Friday_Purchase',
-        'icons': ['python', 'jupyterlab', 'flask', 'heroku']
+        'icons': ['python', 'jupyterlab', 'flask', 'aws']
     },
 
     {
@@ -1013,9 +1033,7 @@ def home():
 
 @app.route("/mood_detection")
 def mood_detection():
-    model_summary = model_obj.summary()
-    print(model_summary)
-    return render_template("mood_detection.html", mood_model={"model_obj": model_summary})
+    return render_template("mood_detection.html")
 
 
 @app.route("/predict_cnn/<task>", methods=["POST"])
@@ -1219,13 +1237,13 @@ def recommender_content_based():
         #print(recommended_movies)
         if len(recommended_movies) == 0:
             recommended_movies = "No result found"
-            output_message_type = "warning"
+            output_message_type = "info"
         else:            
             for movie in recommended_movies:
                 grid_info.append({
                     'title': movie,
                     'year': recommender_system_df.loc[movie]['Year'],
-                    'director': recommender_system_df.loc[movie]['Director'].capitalize(),
+                    'director': recommender_system_df_orig.loc[movie, 'Director'],
                     'poster': recommender_system_df.loc[movie]['Poster'],
                     'imdb': recommender_system_df.loc[movie]['imdbRating']
                 })
