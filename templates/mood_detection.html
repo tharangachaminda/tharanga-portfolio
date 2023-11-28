@@ -15,13 +15,16 @@
                     <small class="form-text text-muted">Try to pick squared image | Max size: 2 Mb | File types: png, jpg, jpeg</small>
                 </div>     
                 <div class="form-group mb-2">
-                    <button class="btn btn-dark" id="upload_image_btn" data-task='mood_detection'>Predict</button>
+                    <button class="btn btn-dark predict-btn" id="upload_image_btn" data-task='mood_detection'>Predict</button>
                 </div>  
                 <div id="error_mgs" class="text-danger"></div> 
                 <div class="row">
                     <div id="image_preview" class="col-3"></div>
                     <div id="result" class="col-9">{% block model_result %}{% endblock %}</div>
                 </div>
+                <div class="form-group mb-2">
+                    {% include "spinner_block.html" %}
+                </div> 
             </form>
         </div>
         <div class="col">

@@ -6,7 +6,9 @@ import numpy as np
 import time
 import sklearn
 from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import MinMaxScaler
 import tensorflow as tf
+from tensorflow.keras.models import load_model
 
 # Falcon9 Plotly dash imports
 from dash import Dash, html, dcc, callback, Output, Input, ctx, State
@@ -27,6 +29,9 @@ import nltk
 nltk.download('stopwords')
 nltk.download('punkt')
 
+# CO2 emission
+import folium
+
 # fetch data from SQlite database abd create a dataframe
 con = sqlite3.connect("./dashboards/falcon9/falcon9.db")
 cur = con.cursor()
@@ -45,8 +50,10 @@ colors = {
     'background': '#111111',
     'text': '#becdce',
     'light': '#e7e7e7',
+    'dark': '#515151',
     'lineColor': '#687879',
-    'gridColor': '#384d4f'
+    'gridColor': '#384d4f',
+    'br_gridColor': '#454545'
 }
 
 binary_class_palette = ['#DE3163', '#50C878']
@@ -84,6 +91,7 @@ def getOrbitTypeOptions():
 
 app = Flask(__name__)
 
+# Falcon 9 Analysis app
 falcon_dash_app = Dash(external_stylesheets=[dbc.themes.SOLAR, dbc.icons.BOOTSTRAP],  server=app, routes_pathname_prefix='/falcon9_dashboard/')
 
 @falcon_dash_app.callback(
@@ -337,10 +345,8 @@ def getLaunchSiteVsPayloadMass(launch_site, flight_number, payload_mass, booster
         chart_title = "Landing outcome of Launch Site %s against Payload Mass" % (
             launch_site)
 
-    fig.update_yaxes(zeroline=False,
-                     tickvals=[0, 1], linecolor=colors['lineColor'], gridcolor=colors['gridColor'])
     fig.update_xaxes(zeroline=False, linecolor=colors['lineColor'],
-                     gridcolor=colors['gridColor'])
+                     gridcolor=colors['gridColor'], tickvals=[0, 1])
 
     fig = updateChartLayout(filtered_df, fig, chart_title, 250)
 
@@ -763,8 +769,324 @@ falcon_dash_app.layout = html.Div(
     }
 )
 
+# CO2 emission Analysis app
+co2_emission_dash_app = Dash(external_stylesheets=[dbc.themes.DARKLY, dbc.icons.BOOTSTRAP],  server=app, routes_pathname_prefix='/co2_emission_dashboard/')
+
+co2_all_countries = pd.read_csv('ML_models/co2_emission_analysis/all_countries.csv')
+co2_geo_region_df = pd.read_csv('ML_models/co2_emission_analysis/geo_regions.csv')
+co2_economy_region_df = pd.read_csv('ML_models/co2_emission_analysis/economy_groups.csv')
+
+geo_json_r = open('ML_models/co2_emission_analysis/world-countries.json', 'r')
+geo_json = geo_json_r.read()
+
+@co2_emission_dash_app.callback(
+    Output('co2_map_div', 'figure'),
+    Input('co2_year', 'value')
+)
+def co2_emissionr_map(co2_year):
+    year_to_display = co2_year[1]
+    chart_title = f"Carbon dioxide emission by country in {year_to_display} (kilotons)"
+    df_all_countries_filter_by_year = co2_all_countries[co2_all_countries['year'] == year_to_display]
+    #df_all_countries_filter_by_year
+
+    fig = px.choropleth(df_all_countries_filter_by_year, locations="country_code",
+                    color="value", # lifeExp is a column of gapminder
+                    hover_name="country_name", # column to add to hover information
+                    color_continuous_scale=px.colors.sequential.Reds,
+                    animation_frame="year",
+                    labels={
+                        'value': 'CO₂',
+                        'country_name': 'Country',
+                        'year': 'Year'
+                    })
+    
+    fig = updateChartLayout(df_all_countries_filter_by_year, fig, chart_title, 375)
+    fig.update_yaxes(
+        zeroline=False, linecolor=colors['lineColor'], gridcolor=colors['br_gridColor'])
+    fig.update_geos(
+        resolution=50, showocean=True, oceancolor="#222",
+        showcountries=True, countrycolor="RebeccaPurple"
+    )
+    fig.update_layout(plot_bgcolor='rgba(0, 0, 0, 0)', paper_bgcolor='rgba(0, 0, 0, 0)', margin={"r":20,"t":25,"l":15,"b":20})
+    
+    return fig
+
+@co2_emission_dash_app.callback(
+    Output('co2_top_5_contributors', 'figure'),
+    Input('co2_year', 'value')
+)
+def top_5_contributors(year_range):
+   
+    df_top_5 = co2_all_countries[((co2_all_countries['year'] >= year_range[0]) & (co2_all_countries['year'] <= year_range[1]))].groupby('country_name').sum(numeric_only=True).sort_values(by='value', ascending=False).head(5)
+    
+    chart_title = f"Top 5 contributors to CO₂ emission ({year_range[0]}-{year_range[1]})"
+    
+    fig = px.bar(
+            df_top_5, 
+            x=df_top_5.index, 
+            y='value', 
+            text_auto='.2s',
+            color='value',
+            color_continuous_scale=px.colors.sequential.Brwnyl,
+            labels={
+                'value': 'CO₂ (kilotons)',
+                'country_name': 'Country'
+            })
+    
+    fig = updateChartLayout(df_top_5, fig, chart_title, 375)
+    fig.update_yaxes(
+        zeroline=False, linecolor=colors['lineColor'], gridcolor=colors['br_gridColor'])
+    fig.update_xaxes(zeroline=False, linecolor=colors['lineColor'],
+                     gridcolor=colors['br_gridColor'])
+    
+    fig.update_layout(
+        paper_bgcolor='rgba(0, 0, 0, 0.2)',
+    )
+    
+    return fig
+
+@co2_emission_dash_app.callback(
+    Output('co2_geo_region_line_chart', 'figure'),
+    Input('co2_year', 'value')
+)
+def co2_geo_region_line_graph(year_range):
+    
+    df_filtered = co2_geo_region_df[((co2_geo_region_df['year'] >= year_range[0]) & (co2_geo_region_df['year'] <= year_range[1]))]
+    
+    chart_title = f"Different geographic regions between {year_range[0]} and {year_range[1]}"
+    
+    fig = px.line(
+        df_filtered, 
+        x='year', 
+        y='value',
+        color='country_name',
+        labels={
+            'value': 'CO₂ emission (kilotons)',
+            'year': 'Year',
+            'country_name': 'Geographic region'
+        },
+        color_discrete_sequence=px.colors.qualitative.Bold)
+    
+    fig = updateChartLayout(df_filtered, fig, chart_title, 375)
+    fig.update_yaxes(
+        zeroline=False, linecolor=colors['lineColor'], gridcolor=colors['br_gridColor'])
+    fig.update_xaxes(zeroline=False, linecolor=colors['lineColor'], 
+                     gridcolor=colors['br_gridColor'], type='date', categoryorder='category ascending')
+        
+    fig.update_layout(
+        paper_bgcolor='rgba(0, 0, 0, 0.2)',
+    )
+    
+    return fig
+
+@co2_emission_dash_app.callback(
+    Output('co2_top_5_contributors_all_time', 'figure'),
+    Input('co2_year', 'value')
+)
+def top_5_contributors_all_time(year_range):
+    df_total_co2 = co2_all_countries.groupby('country_name').sum(numeric_only=True).sort_values(by='value', ascending=False).head(5).reset_index()
+    #print(df_total_co2)
+    chart_title = "Total CO₂ emission by top contributors all time"
+    
+    fig = px.pie(
+            df_total_co2,
+            values='value',
+            names='country_name',
+            hole=0.3,
+            color_discrete_sequence=px.colors.qualitative.Antique
+        )
+    
+    fig = updateChartLayout(df_total_co2, fig, chart_title, 375)
+    
+    fig.update_layout(autosize=False)
+        
+    return fig
+
+@co2_emission_dash_app.callback(
+    Output('co2_economy_region_line_chart', 'figure'),
+    Input('co2_year', 'value')
+)
+def co2_economy_region(year_range):
+    
+    chart_title = f"Economy groups between {year_range[0]} and {year_range[1]}"
+    
+    df_filtered = co2_economy_region_df[((co2_economy_region_df['year'] >= year_range[0]) & (co2_economy_region_df['year'] <= year_range[1]))]
+    
+    fig = px.line(
+        df_filtered, 
+        x='year', 
+        y='value',
+        color='country_name',
+        labels={
+            'value': 'CO₂ emission (kilotons)',
+            'year': 'Year',
+            'country_name': 'Economy group'
+        },
+        color_discrete_sequence=px.colors.qualitative.Vivid)
+    
+    fig = updateChartLayout(df_filtered, fig, chart_title, 375)
+    
+    fig.update_yaxes(
+        zeroline=False, linecolor=colors['lineColor'], gridcolor=colors['gridColor'])
+    fig.update_xaxes(zeroline=False, linecolor=colors['lineColor'], 
+                     gridcolor=colors['gridColor'], type='date', categoryorder='category ascending')  
+        
+    fig.update_layout(
+        paper_bgcolor='rgba(0, 0, 0, 0.2)',
+    )
+    
+    return fig
+
+
+co2_emission_dash_app.layout = html.Div(
+    [
+        dbc.Container(
+            dbc.Row(
+                [
+                    dbc.Row(
+                        [
+                            dbc.Col(
+                                html.Div(
+                                    [
+                                        html.Img(
+                                            src="/static/assets/images/co2_dash_logo.png",
+                                            width=120,
+                                            style={
+                                                'margin-bottom': '20px',
+                                        })                                           
+                                    ]
+                                ),
+                                width='auto'
+                            ),
+                        
+                            dbc.Col(
+                                html.Div(
+                                    [
+                                        html.H2("CO₂ Emission", style={
+                                                'color': colors['text']}),
+                                        html.H5(
+                                            "Worldwide Analysis", style={
+                                                'color': colors['text']})
+                                    ]
+                                ),
+                                width='auto'
+                            ),
+                            dbc.Col(
+                                html.Div(
+                                    [
+                                        dbc.Button(
+                                            [
+                                                html.I(className="bi bi-house-fill me-2"),
+                                                "Back to Home"
+                                            ], 
+                                            href="javascript:history.back()",
+                                            id='back_button', 
+                                            color="danger", 
+                                            className="me-1", 
+                                            n_clicks=0)
+                                    ],
+                                    style={'text-align': 'right'}
+                                ),
+                            )
+                        ],
+                        className='mb-2'
+                    ),
+                    dbc.Row(
+                        [
+                            dbc.Col(
+                                [
+                                    html.Div(
+                                        [
+                                            dcc.Graph(id="co2_map_div"),
+                                        ]                          
+                                    ),
+                                ],
+                                width=5
+                            ),
+                            dbc.Col(
+                                [
+                                    html.Div(
+                                        [
+                                            dcc.Graph(id="co2_top_5_contributors")
+                                        ]                           
+                                    ),
+                                ],
+                                width=4
+                            ),
+                            dbc.Col(
+                                [
+                                    html.Div(
+                                        [
+                                            dcc.Graph(id="co2_top_5_contributors_all_time")
+                                        ]                           
+                                    ),
+                                ],
+                                width=3
+                            )
+                        ],
+                        className='mb-2'
+                    ), 
+                    dbc.Row(
+                        [
+                            dbc.Col(
+                                [
+                                    html.Div(
+                                        [
+                                            dcc.Graph(id="co2_geo_region_line_chart")
+                                        ]                           
+                                    ),
+                                ],
+                                width=6
+                            ),
+                            dbc.Col(
+                                [
+                                    html.Div(
+                                        [
+                                            dcc.Graph(id="co2_economy_region_line_chart")
+                                        ]                           
+                                    ),                                    
+                                ],
+                                width=6
+                            )
+                        ],
+                        className='mb-2'
+                    ), 
+                    dbc.Row(
+                        [
+                            dbc.Col(
+                                [
+                                    html.H6('Timeline', style={'text-align': 'center'}),
+                                    dcc.RangeSlider(
+                                        id="co2_year",
+                                        min=co2_all_countries['year'].min(), max=co2_all_countries['year'].max(), step=1,
+                                        tooltip={"placement": "bottom", "always_visible": True},
+                                        marks={
+                                            yr: {'label': str(yr), 'style': {
+                                                'color': str(colors['text']), 'font-size': '16px'}}
+                                            for yr in list(range(co2_all_countries['year'].unique().min(), co2_all_countries['year'].unique().max() + 1, 10))
+                                        },
+                                        value=[co2_all_countries['year'].unique().min(), co2_all_countries['year'].unique().max()],
+                                        allowCross=False
+                                    )
+                                ]
+                            )
+                        ]
+                    )                   
+                ]
+            ),
+            fluid=True
+        ),
+        
+    ],
+    style={
+        'padding': 10,
+        'color': colors['text'],
+    }
+)
+
 # Recommender system
 recommender_system_df = pd.read_csv('https://query.data.world/s/uikepcpffyo2nhig52xxeevdialfl7')
+recommender_system_df_orig = recommender_system_df[['Title', 'Year', 'Genre','Director','Actors','Plot', 'Poster', 'imdbRating']].set_index('Title')
 recommender_system_df = recommender_system_df[['Title', 'Year', 'Genre','Director','Actors','Plot', 'Poster', 'imdbRating']]
 
 def recomender_preprocessing(movie_df):
@@ -775,10 +1097,15 @@ def recomender_preprocessing(movie_df):
     movie_df['Director'] = movie_df['Director'].map(lambda x: x.lower().split(' '))
 
     # join Actors and Director names as a single string
-    for index, row in movie_df.iterrows():
-        #print(index)
-        movie_df['Actors'][index] = [x.replace(' ', '') for x in row['Actors']]
-        movie_df['Director'][index] = ''.join(row['Director'])
+    movie_df['Actors'] = movie_df.apply(lambda row: [x.replace(' ', '') for x in row['Actors']], axis=1)
+    movie_df['Director'] = movie_df.apply(lambda row: ''.join(row['Director']), axis=1)
+    # for index, row in movie_df.iterrows():
+    #     #print(index)
+    #     row['Actors'] = [x.replace(' ', '') for x in row['Actors']]
+    #     row['Director'] = ''.join(row['Director'])
+        
+    #     movie_df.loc[:, ('Actors', index)] = row['Actors']
+    #     movie_df.loc[:, ('Director', index)] = row['Director']
     
     return movie_df
 
@@ -820,15 +1147,20 @@ def create_bag_of_words(movie_df):
     movie_df['bag_of_words'] = ""
     
     columns = movie_df.columns
-    for index, row in movie_df.iterrows():
-        words = ''
-        for col in columns:
-            if col == 'Director':
-                #print(row[col])
-                words += row[col] + ' '
-            elif col == 'Actors':
-                words += ' '.join(row[col]) + ' '
-        movie_df['bag_of_words'][index] = words
+    # for index, row in movie_df.iterrows():
+    #     words = ''
+    #     for col in columns:
+    #         if col == 'Director':
+    #             #print(row[col])
+    #             words += row[col] + ' '
+    #         elif col == 'Actors':
+    #             words += ' '.join(row[col]) + ' '
+    #     movie_df.loc[:, ('bag_of_words', index)] = words
+    
+    movie_df['bag_of_words'] = movie_df.apply(
+        lambda row: bag_of_words_row(row['Actors'], row['Director']),
+        axis=1
+    )
         
     # now we only need the index and the bag_of_words column. So, we drop other columns
     keep_cols = ['bag_of_words', 'Title', 'Year', 'Director', 'Poster', 'imdbRating']
@@ -836,7 +1168,16 @@ def create_bag_of_words(movie_df):
     
     return movie_df
 
+def bag_of_words_row(actors, director):
+    words = ''
+    words += director + ' '
+    words += ' '.join(actors) + ' '
+    
+    return words
+
 recommender_system_df = create_bag_of_words(recommender_system_df)
+#print(recommender_system_df[['Director', 'bag_of_words']])
+#print(recommender_system_df)
 
 # apply Countervectorizer
 # this tokenize the words by counting the frequesncy. This is needed for calculate Cosine similarity
@@ -878,7 +1219,7 @@ def recommender(title, cosine_sim=cosine_sim):
 
 # load saved model files
 mood_class_strings = ['Sad', 'Happy']
-mood_detection_model = tf.keras.models.load_model(
+mood_detection_model = load_model(
     'ML_models/happy_model.keras')
 with open('ML_models/lr_banknotes_model.pkl', 'rb') as f:
     banknote_model = pickle.load(f)
@@ -888,14 +1229,19 @@ with open('ML_models/Blackfriday_DT_model.pkl', 'rb') as f:
 
 # this list is not essential. We can use model output index as the result. But for the consistancy of the program I'm using it here.
 sign_language_class_strings = [0, 1, 2, 3, 4, 5]
-sign_language_model = tf.keras.models.load_model(
+sign_language_model = load_model(
     'ML_models/sign_laguange.keras')
 
-sign_language_resnet_model = tf.keras.models.load_model(
-    'ML_models/sign_language_resnet50.keras')
+sign_language_resnet_model = load_model(
+    'ML_models/sign_language_resnet50')
 
-alpaca_mobilenetv2_model = tf.keras.models.load_model(
-    'ML_models/alpaca_mobile_netv2.keras')
+alpaca_mobilenetv2_model = load_model(
+    'ML_models/alpaca_mobile_netv2')
+
+co2_emission_lstm_model = load_model('ML_models/co2_emission_lstm')
+co2_emission_scalerfile = 'ML_models/co2_emission_lstm/scaler.sav'
+co2_emission_scaler = pickle.load(open(co2_emission_scalerfile, 'rb'))
+co2_orig_csv = pd.read_csv('ML_models/co2_emission_lstm/year_emission.csv')
 
 up_path = os.path.join(os.getcwd(), 'static', 'assets', 'temp')
 
@@ -912,7 +1258,7 @@ my_work = [
         'title': 'Black Friday Purchase Prediction',
         'description': "This project will understand the customer purchase behaviour (specifically, purchase amount) against various products of different categories. They have shared purchase summary of various customers for selected high volume products from last month.",
         'github': 'https://github.com/tharangachaminda/Black_Friday_Purchase',
-        'icons': ['python', 'jupyterlab', 'flask', 'heroku']
+        'icons': ['python', 'jupyterlab', 'flask', 'aws']
     },
 
     {
@@ -1002,6 +1348,26 @@ my_work = [
         'github': 'https://github.com/tharangachaminda/transfer_learning_with_mobilenet_v2',
         'icons': ['python', 'jupyterlab', 'tensorflow', 'flask', 'heroku']
     },
+    
+    {
+        'header': 'End-to-end (Deep Learning - LSTM)',
+        'application_url': 'co2_emission_lstm',
+        'image': 'co2_emission.png',
+        'title': 'CO<sub>2</sub> emission prediction of Sri Lanka (LSTM)',
+        'description': "LSTM (Long Short-Term Memory) is a type of Recurrent Neural Network (RNN) architecture designed to efficiently capture and utilize long-term dependencies in <b>sequential data</b>. In this project, I will be developping an LSTM model to predict future CO<sub>2</sub> emission. CO<sub>2</sub> emission data is a Timeseries dataset, which fits for sequential model perfectly.",
+        'github': 'https://github.com/tharangachaminda/co2_emission_prediction',
+        'icons': ['python', 'jupyterlab', 'tensorflow', 'flask', 'aws']
+    },
+    
+    {
+        'header': 'Analysis',
+        'application_url': 'co2_emission_dashboard',
+        'image': 'co2_emission_analysis.png',
+        'title': 'CO<sub>2</sub> emission around the world.',
+        'description': "Countries vary significantly in their CO<sub>2</sub> emission levels due to differences in industrialization, energy consumption, transportation, and policies regarding environmental regulations. Some nations, particularly highly industrialized ones like China, the United States, India, and the European Union countries, tend to produce higher CO<sub>2</sub> emissions.",
+        'github': 'https://github.com/tharangachaminda/co2_emission_analysis',
+        'icons': ['python', 'jupyterlab', 'folium', 'plotly-dash', 'aws']
+    },
 
 ]
 
@@ -1013,9 +1379,7 @@ def home():
 
 @app.route("/mood_detection")
 def mood_detection():
-    model_summary = model_obj.summary()
-    print(model_summary)
-    return render_template("mood_detection.html", mood_model={"model_obj": model_summary})
+    return render_template("mood_detection.html")
 
 
 @app.route("/predict_cnn/<task>", methods=["POST"])
@@ -1219,19 +1583,90 @@ def recommender_content_based():
         #print(recommended_movies)
         if len(recommended_movies) == 0:
             recommended_movies = "No result found"
-            output_message_type = "warning"
+            output_message_type = "info"
         else:            
             for movie in recommended_movies:
                 grid_info.append({
                     'title': movie,
                     'year': recommender_system_df.loc[movie]['Year'],
-                    'director': recommender_system_df.loc[movie]['Director'].capitalize(),
+                    'director': recommender_system_df_orig.loc[movie, 'Director'],
                     'poster': recommender_system_df.loc[movie]['Poster'],
                     'imdb': recommender_system_df.loc[movie]['imdbRating']
                 })
         
         return render_template('info_grid.html', message={'type': output_message_type, 'text': recommended_movies, 'grid_info': grid_info})
 
+@app.route('/co2_emission_lstm', methods=['GET', 'POST'])
+def co2_emission_lstm():
+    if request.method == 'GET':
+        return render_template('co2_emission_lstm.html', params={'last_year': int(co2_orig_csv['year'].iloc[-1])})
+    elif request.method == 'POST':
+        request_json = request.get_json()
+        
+        window_size = 2
+        
+        # validation set
+        val_data = np.array([[0.42428668],
+                            [0.47168195],
+                            [0.49305629],
+                            [0.5446335 ],
+                            [0.47121728],
+                            [0.5265118 ],
+                            [0.49026836],
+                            [0.46610604],
+                            [0.50234947],
+                            [0.61154451],
+                            [0.67799085],
+                            [0.56786648],
+                            [0.71284033],
+                            [0.8410864 ],
+                            [0.91403795],
+                            [0.98048429],
+                            [0.90288613],
+                            [1.        ]])
+        
+        x_input = val_data[-(window_size):].reshape(1, -1)
+        
+        temp_input = list(x_input)
+        temp_input = temp_input[0].tolist() # this is the inputs for starting prediction
+        
+        lst_output=[]
+        n_steps=window_size
+        number_of_years_to_predict = int(request_json['to_year']) - 2019
+        i=0
+        while(i<number_of_years_to_predict):
+            
+            if(len(temp_input)>n_steps):
+                #print(temp_input)
+                x_input=np.array(temp_input[1:])
+                #print("{} Year input {}".format(i,x_input))
+                x_input=x_input.reshape(1,-1)
+                x_input = x_input.reshape((1, n_steps, 1))
+                #print(x_input)
+                yhat = co2_emission_lstm_model.predict(x_input, verbose=0)
+                #print("{} Year output {}".format(i,yhat))
+                temp_input.extend(yhat[0].tolist())
+                temp_input=temp_input[1:]
+                #print(temp_input)
+                lst_output.extend(yhat.tolist())
+                i=i+1
+            else:
+                x_input = x_input.reshape((1, n_steps,1))
+                yhat = co2_emission_lstm_model.predict(x_input, verbose=0)
+                #print(yhat[0])
+                temp_input.extend(yhat[0].tolist())
+                #print(len(temp_input))
+                lst_output.extend(yhat.tolist())
+                i=i+1
+        
+        final_output = co2_emission_scaler.inverse_transform(lst_output).flatten()
+        x_labels = co2_orig_csv['year'].tolist() + np.arange(int(co2_orig_csv['year'].iloc[-1]) + 1, int(request_json['to_year']) + 1).tolist()
+        
+        chart_data_orig = list(co2_orig_csv['value']) + [0] * len(final_output)
+        chart_data_predicted = [0] * (len(co2_orig_csv['value']) - 1) + list([co2_orig_csv['value'].iloc[-1]]) + list(final_output)
+        
+        response_json = {"x_labels": x_labels, "orig": chart_data_orig, "predicted": chart_data_predicted}
+        return jsonify(response_json)
 
 if __name__ == "__main__":
     # app.run(host='0.0.0.0')

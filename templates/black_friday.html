@@ -133,6 +133,10 @@
 
                 <div id="error_mgs" class="text-danger"></div> 
                 <div id="result">{% block model_result %}{% endblock %}</div>
+
+                <div class="mb-2">
+                    {% include "spinner_block.html" %}
+                </div>
             </form>
         </div>
         <div class="col">
