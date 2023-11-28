@@ -162,4 +162,108 @@ $(document).ready(function(){
         }        
     });
     
+
+    function reviver( key, value ) {
+        if ( value === "NaN" ) {
+            return NaN;
+        }
+        if ( value === "nan" ) {
+            return NaN;
+        }
+        if ( value === "***Infinity***" ) {
+            return Infinity;
+        }
+        if ( value === "***-Infinity***" ) {
+            return -Infinity;
+        }
+        return value;
+    }
+
+    // CO2 emission prediction
+    $('#year_range').on('input', function(e){
+        var range_val = $(this).val();
+        console.log(range_val)
+        $('#range_text').html(range_val)
+    });
+
+    var co2_chart;
+    $('#predict_co2_emission_btn').on('click', function(e){
+        var to_year =  $('#year_range').val();
+        const ctx = document.getElementById("chart_block");
+
+        if(co2_chart) {
+            co2_chart.destroy();
+        }
+
+        show_hide_spinner(true);
+
+        $.ajax({
+            url: '/co2_emission_lstm',
+            type: 'POST',
+            data: JSON.stringify({
+                'to_year':to_year
+            }),
+            contentType: 'application/json',
+            success: function(data) {
+                console.log(data);
+                //$('#result').html(data);
+
+                //var data = JSON.parse( responseData, reviver );
+
+                show_hide_spinner(false);
+                //data = JSON.parse(data)
+                //console.log(data['chart_data'])
+                if(data != undefined) {
+                    
+                    co2_chart = new Chart(ctx, {
+                        type: "line",
+                        data: {
+                          labels: data['x_labels'],
+                          datasets: [
+                            {
+                                data:  data['orig'].map(item => item == 0 ? NaN : item),
+                                label: "CO2 emission",
+                                borderColor: 'rgba(0, 150, 255, 1)',
+                                fill: false
+                            },
+
+                            {
+                                data:  data['predicted'].map(item => item == 0 ? NaN : item),
+                                label: "CO2 emission prediction",
+                                borderColor: 'rgba(199, 0, 57, 1)',
+                                fill: false
+                            },
+                            
+                          ]
+                        },
+                        options: {
+                            responsive: true,
+                            title: {
+                                display: true,
+                                text: "CO2 emission in Sri Lanka (in kilotons)"
+                            },
+                            scales: {
+                                x: {
+                                    title: {
+                                        display: true,
+                                        text: 'Year'
+                                    }
+                                },
+                                y: {
+                                    title: {
+                                        display: true,
+                                        text: 'CO2 emission (in kilotons)'
+                                    }
+                                }
+                            }
+                        }
+                      });
+                }
+                
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+                console.log(textStatus, errorThrown);
+            }
+        })
+    });
 });

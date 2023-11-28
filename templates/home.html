@@ -27,11 +27,11 @@
                   class="link-dark link-underline-opacity-0"
                   href="{{ work['github'] }}"
                   target="_blank"
-                  >{{ work['title'] }}</a
+                  >{{ work['title'] | safe }}</a
                 >
               </h5>
               <p class="card-text text-sm" style="font-size: 15px">
-                {{ work['description']|safe }}
+                {{ work['description'] | safe }}
               </p>
               <div
                 style="
@@ -46,12 +46,12 @@
                     href="{{ work['github'] }}"
                     target="_blank"
                     ><img class="sm-icon" src="{{ url_for("static",
-                    filename="assets/images/github.png") }}" /></a
+                    filename="assets/images/github.png") }}" title="Github" /></a
                   >
                   {% for icon in work['icons'] %}
                   <a class="card-link"
                     ><img class="sm-icon" src="{{ url_for("static",
-                    filename="assets/images/") }}{{icon}}.png" /></a
+                    filename="assets/images/") }}{{icon}}.png" title="{{ icon | capitalize }}" /></a
                   >
                   {% endfor %}
                 </div>

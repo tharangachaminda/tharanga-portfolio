@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+
+{% block container %}
+
+<div class="container top-pad">    
+    <div class="row">
+        <div class="col">
+            <h2>Forecast future CO<sub>2</sub> emission in Sri Lanka</h2>
+            <p>You can adjust following range input to predict CO<sub>2</sub> emission in next 20 years from {{ params['last_year'] }}.</p>
+            <p class="alert alert-info"><i class="bi bi-info-circle-fill"></i> We can improve this model by changing the model architecture, and adding more training data. At this level I wanted to showcase my work towards implementation and deployment of Machine Learning model.</p>
+            <form id="co2_emission_form" class="no-submit-form">
+                <div class="form-group mb-2">
+                    <label for="year_range" class="form-label">Year range from {{ params['last_year'] }}</label>
+                    <input type="range" class="form-range" min="{{ params['last_year'] + 1 }}" max="{{ params['last_year'] + 20 }}" id="year_range" value="2020">
+                    <div class="row">
+                        <div class="col"><h5 class="text-muted">{{ params['last_year'] }}</h5></div>
+                        <div class="col text-center"><span class="badge rounded-pill text-bg-primary"><h5 id="range_text" class="mb-1">{{ params['last_year'] + 1 }}</span></h5></div>
+                        <div class="col text-end"><h5 class="text-muted">{{ params['last_year'] + 20 }}</h5></div>
+                    </div>
+                </div>
+                
+                <div class="form-group mb-2">
+                    <button class="btn btn-dark predict-btn" id="predict_co2_emission_btn">Predict</button>
+                </div>
+                <div id="error_mgs" class="text-danger"></div> 
+                <div id="result" class="col-9">{% block model_result %}{% endblock %}</div>
+                <div class="mb-2">
+                    {% include "spinner_block.html" %}
+                </div> 
+            </form>
+        </div>
+        <div class="col">
+            <h2>Model summary</h2>
+            
+            <pre>
+                Model: "sequential_11"
+_________________________________________________________________
+ Layer (type)                Output Shape              Param #   
+=================================================================
+ lstm_17 (LSTM)              (None, 64)                16896     
+                                                                 
+ dense_34 (Dense)            (None, 32)                2080      
+                                                                 
+ dense_35 (Dense)            (None, 32)                1056      
+                                                                 
+ dense_36 (Dense)            (None, 32)                1056      
+                                                                 
+ dense_37 (Dense)            (None, 1)                 33        
+                                                                 
+=================================================================
+Total params: 21121 (82.50 KB)
+Trainable params: 21121 (82.50 KB)
+Non-trainable params: 0 (0.00 Byte)
+_________________________________________________________________
+            </pre>
+        </div>
+    </div>   
+    <div class="row">
+        <div class="col"><canvas id="chart_block" width="700" height="300"></canvas></div>
+    </div> 
+</div>
+
+{% endblock %}
