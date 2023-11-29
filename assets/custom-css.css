@@ -1,0 +1,32 @@
+#co2_year .rc-slider-track {
+    background-color: #539905;
+    height: 10px;
+}
+
+#co2_year .rc-slider-dot-active {
+    background-color: #539905;
+}
+
+#co2_year .rc-slider-dot {
+    position: absolute;
+    bottom: -6px;
+    margin-left: -4px;
+    width: 10px;
+    height: 10px;
+    border: 2px solid #e9e9e9;
+    background-color: #fff;
+    cursor: pointer;
+    border-radius: 50%;
+    vertical-align: middle;
+}
+
+#co2_year .rc-slider-handle {
+    width: 18px;
+    height: 18px;
+    border: solid 2px #539905;
+}
+
+#co2_year .rc-slider-rail {
+    background-color: #515151;
+    height: 10px;
+}

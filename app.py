@@ -91,8 +91,13 @@ def getOrbitTypeOptions():
 
 app = Flask(__name__)
 
+@app.context_processor
+def inject_now():
+    return {'now': datetime.datetime.utcnow()}
+
 # Falcon 9 Analysis app
 falcon_dash_app = Dash(external_stylesheets=[dbc.themes.SOLAR, dbc.icons.BOOTSTRAP],  server=app, routes_pathname_prefix='/falcon9_dashboard/')
+falcon_dash_app.title = "Falcon 9"
 
 @falcon_dash_app.callback(
     Output(component_id="success_launchsite_pie_chart",
@@ -797,6 +802,7 @@ def co2_emissionr_map(co2_year):
                     labels={
                         'value': 'CO₂',
                         'country_name': 'Country',
+                        'country_code': 'Country',
                         'year': 'Year'
                     })
     
@@ -807,7 +813,7 @@ def co2_emissionr_map(co2_year):
         resolution=50, showocean=True, oceancolor="#222",
         showcountries=True, countrycolor="RebeccaPurple"
     )
-    fig.update_layout(plot_bgcolor='rgba(0, 0, 0, 0)', paper_bgcolor='rgba(0, 0, 0, 0)', margin={"r":20,"t":25,"l":15,"b":20})
+    fig.update_layout(plot_bgcolor='rgba(0, 0, 0, 0)', paper_bgcolor='rgba(0, 0, 0, 0)', margin={"r":15,"t":25,"l":20,"b":20})
     
     return fig
 
@@ -853,26 +859,46 @@ def co2_geo_region_line_graph(year_range):
     
     df_filtered = co2_geo_region_df[((co2_geo_region_df['year'] >= year_range[0]) & (co2_geo_region_df['year'] <= year_range[1]))]
     
-    chart_title = f"Different geographic regions between {year_range[0]} and {year_range[1]}"
+    chart_title = f"Different geographical regions between {year_range[0]} and {year_range[1]}"
     
-    fig = px.line(
-        df_filtered, 
-        x='year', 
-        y='value',
-        color='country_name',
-        labels={
-            'value': 'CO₂ emission (kilotons)',
-            'year': 'Year',
-            'country_name': 'Geographic region'
-        },
-        color_discrete_sequence=px.colors.qualitative.Bold)
+    if (year_range[1] - year_range[0]) > 5:
+        fig = px.line(
+            df_filtered, 
+            x='year', 
+            y='value',
+            color='country_name',
+            labels={
+                'value': 'CO₂ emission (kilotons)',
+                'year': 'Year',
+                'country_name': 'Geographical region'
+            },
+            color_discrete_sequence=px.colors.qualitative.Bold)
+        
+        fig.update_yaxes(
+        zeroline=False, linecolor=colors['lineColor'], gridcolor=colors['br_gridColor'])
+        fig.update_xaxes(zeroline=False, linecolor=colors['lineColor'], 
+                        gridcolor=colors['br_gridColor'], type='date', categoryorder='category ascending')
+    else:
+        fig = px.bar(
+            df_filtered, 
+            x='value', 
+            y='year', 
+            orientation='h',
+            text_auto='.2s',
+            color='country_name',
+            color_discrete_sequence=px.colors.qualitative.Antique,
+            labels={
+                'value': 'CO₂ (kilotons)',
+                'country_name': 'Geographical region'
+            })
+        
+        fig.update_yaxes(
+        zeroline=False, linecolor=colors['lineColor'], gridcolor=colors['br_gridColor'], type='date', categoryorder='category ascending')
+        fig.update_xaxes(zeroline=False, linecolor=colors['lineColor'], 
+                        gridcolor=colors['br_gridColor'])
     
     fig = updateChartLayout(df_filtered, fig, chart_title, 375)
-    fig.update_yaxes(
-        zeroline=False, linecolor=colors['lineColor'], gridcolor=colors['br_gridColor'])
-    fig.update_xaxes(zeroline=False, linecolor=colors['lineColor'], 
-                     gridcolor=colors['br_gridColor'], type='date', categoryorder='category ascending')
-        
+            
     fig.update_layout(
         paper_bgcolor='rgba(0, 0, 0, 0.2)',
     )
@@ -893,7 +919,11 @@ def top_5_contributors_all_time(year_range):
             values='value',
             names='country_name',
             hole=0.3,
-            color_discrete_sequence=px.colors.qualitative.Antique
+            color_discrete_sequence=px.colors.qualitative.Antique,
+            labels={
+                'value': 'CO₂ (kilotons)',
+                'country_name': 'Country'
+            }
         )
     
     fig = updateChartLayout(df_total_co2, fig, chart_title, 375)
@@ -912,24 +942,37 @@ def co2_economy_region(year_range):
     
     df_filtered = co2_economy_region_df[((co2_economy_region_df['year'] >= year_range[0]) & (co2_economy_region_df['year'] <= year_range[1]))]
     
-    fig = px.line(
-        df_filtered, 
-        x='year', 
-        y='value',
-        color='country_name',
-        labels={
-            'value': 'CO₂ emission (kilotons)',
-            'year': 'Year',
-            'country_name': 'Economy group'
-        },
-        color_discrete_sequence=px.colors.qualitative.Vivid)
+    if (year_range[1] - year_range[0]) > 5:
+        fig = px.line(
+            df_filtered, 
+            x='year', 
+            y='value',
+            color='country_name',
+            labels={
+                'value': 'CO₂ emission (kilotons)',
+                'year': 'Year',
+                'country_name': 'Economy group'
+            },
+            color_discrete_sequence=px.colors.qualitative.Vivid)
+    else:
+        fig = px.bar(
+            df_filtered, 
+            x='year', 
+            y='value', 
+            text_auto='.2s',
+            color='country_name',
+            color_discrete_sequence=px.colors.sequential.Brwnyl_r,
+            labels={
+                'value': 'CO₂ (kilotons)',
+                'country_name': 'Economy group'
+            })
     
     fig = updateChartLayout(df_filtered, fig, chart_title, 375)
     
     fig.update_yaxes(
-        zeroline=False, linecolor=colors['lineColor'], gridcolor=colors['gridColor'])
+        zeroline=False, linecolor=colors['lineColor'], gridcolor=colors['br_gridColor'])
     fig.update_xaxes(zeroline=False, linecolor=colors['lineColor'], 
-                     gridcolor=colors['gridColor'], type='date', categoryorder='category ascending')  
+                     gridcolor=colors['br_gridColor'], type='date', categoryorder='category ascending')  
         
     fig.update_layout(
         paper_bgcolor='rgba(0, 0, 0, 0.2)',
@@ -937,11 +980,11 @@ def co2_economy_region(year_range):
     
     return fig
 
-
+co2_emission_dash_app.title = "CO₂ emission"
 co2_emission_dash_app.layout = html.Div(
     [
         dbc.Container(
-            dbc.Row(
+            html.Div(
                 [
                     dbc.Row(
                         [
@@ -950,10 +993,7 @@ co2_emission_dash_app.layout = html.Div(
                                     [
                                         html.Img(
                                             src="/static/assets/images/co2_dash_logo.png",
-                                            width=120,
-                                            style={
-                                                'margin-bottom': '20px',
-                                        })                                           
+                                            width=120)                                           
                                     ]
                                 ),
                                 width='auto'
@@ -962,11 +1002,17 @@ co2_emission_dash_app.layout = html.Div(
                             dbc.Col(
                                 html.Div(
                                     [
-                                        html.H2("CO₂ Emission", style={
-                                                'color': colors['text']}),
-                                        html.H5(
-                                            "Worldwide Analysis", style={
-                                                'color': colors['text']})
+                                        html.H2(
+                                            [
+                                                "CO₂ Emission ",
+                                                html.Small('(Worldwide Analysis)', style={
+                                                    'font-size': '24px'
+                                                })
+                                            ], style={
+                                                'color': colors['text'],
+                                                'display': 'inline'
+                                            }
+                                        ),
                                     ]
                                 ),
                                 width='auto'
@@ -989,8 +1035,10 @@ co2_emission_dash_app.layout = html.Div(
                                 ),
                             )
                         ],
-                        className='mb-2'
+                        className='mb-2',
+                        align="center"
                     ),
+                    html.Hr(),
                     dbc.Row(
                         [
                             dbc.Col(
@@ -1049,17 +1097,20 @@ co2_emission_dash_app.layout = html.Div(
                                 width=6
                             )
                         ],
-                        className='mb-2'
+                        className='mb-3'
                     ), 
                     dbc.Row(
                         [
                             dbc.Col(
                                 [
-                                    html.H6('Timeline', style={'text-align': 'center'}),
+                                    html.H6([
+                                        html.I(className="bi bi-sliders me-2"),
+                                        'Timeline'
+                                        ], style={'text-align': 'center'}),
                                     dcc.RangeSlider(
                                         id="co2_year",
                                         min=co2_all_countries['year'].min(), max=co2_all_countries['year'].max(), step=1,
-                                        tooltip={"placement": "bottom", "always_visible": True},
+                                        tooltip={"placement": "top", "always_visible": False},
                                         marks={
                                             yr: {'label': str(yr), 'style': {
                                                 'color': str(colors['text']), 'font-size': '16px'}}
@@ -1574,11 +1625,18 @@ def recommender_content_based():
         return render_template('recommender_content_based.html', options=recommender_system_df.index)
     elif request.method == 'POST':
         input_movie = request.get_json()
+        input_movie_title = input_movie['input_movie']
         
         output_message_type = "normal"
-        grid_info = []
+        grid_info = [{
+                    'title': input_movie_title,
+                    'year': recommender_system_df.loc[input_movie_title]['Year'],
+                    'director': recommender_system_df_orig.loc[input_movie_title, 'Director'],
+                    'poster': recommender_system_df.loc[input_movie_title]['Poster'],
+                    'imdb': recommender_system_df.loc[input_movie_title]['imdbRating']
+                }]
         
-        recommended_movies = recommender(input_movie['input_movie'])
+        recommended_movies = recommender(input_movie_title)
                 
         #print(recommended_movies)
         if len(recommended_movies) == 0:
