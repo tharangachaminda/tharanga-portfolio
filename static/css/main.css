@@ -4,6 +4,7 @@ body {
 
 .top-pad {
   padding: 20px 15px;
+  min-height: 83vh;
 }
 
 .sm-icon {
@@ -41,4 +42,12 @@ body {
 .card-image {
   background-size: cover;
   background-position: center;
+}
+
+footer .nav-link {
+  color: #cecece;
+}
+
+footer .nav-link:hover {
+  color: #fff;
 }

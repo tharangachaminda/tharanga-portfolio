@@ -12,9 +12,11 @@
             <i class="bi bi-exclamation-circle"></i> {{ message['text'] | safe }}
         </div>
     {% else %}
-        {% for grid_info in message['grid_info'] %}
-            <div class="col-3">
-                <div class="card mb-3" style="box-shadow: 0px 0px 10px -2px #ababab;">
+        {% set grid_info = message['grid_info'][0] %}
+        <div class="col-3">
+            <h3>Your movie</h3>
+            <div class="col">
+                <div class="card mb-3" style="box-shadow: 0px 0px 10px -2px #ed0787;">
                     
                     <img class="card-img-top" src="{{ grid_info['poster'] }}" onerror="this.src='{{ url_for('static', filename='assets/images/no-image.png') }}'" alt="{{ grid_info['title'] }}" style="height: 448px;" />
                     
@@ -28,6 +30,28 @@
                     </div>
                 </div>
             </div>
-        {% endfor %}
+        </div>
+        <div class="col-9">
+            <h3>Top 10 Recommendations</h3>
+            <div class="row">
+                {% for grid_info in message['grid_info'][1:] %}
+                    <div class="col-3">
+                        <div class="card mb-3" style="box-shadow: 0px 0px 10px -2px #ababab;">
+                            
+                            <img class="card-img-top" src="{{ grid_info['poster'] }}" onerror="this.src='{{ url_for('static', filename='assets/images/no-image.png') }}'" alt="{{ grid_info['title'] }}" style="height: 326px;" />
+                            
+                            <div class="card-body">
+                                <p class="card-text">
+                                <h6>{{ grid_info['title'] | safe }}</h6>
+                                Released Year: <b>{{ grid_info['year'] }}</b><br/>
+                                imdb: <b>{{ grid_info['imdb'] }}</b><br />
+                                Directed by <b>{{ grid_info['director'] }}</b>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>            
+        </div>
     {% endif %} 
 {% endblock %}
