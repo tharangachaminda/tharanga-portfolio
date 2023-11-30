@@ -230,7 +230,7 @@ def getSuccessOrbitPieChart(orbit_type, launch_site, flight_number, payload_mass
                      title=chart_title,
                      color_discrete_sequence=color_sequence,
                      hole=.3,)
-    print('len df 2: \n', filtered_df)
+    #print('len df 2: \n', filtered_df)
     fig = updateChartLayout(filtered_df, fig, chart_title, pieChartHeight)
 
     return fig
@@ -335,6 +335,7 @@ def getLaunchSiteVsPayloadMass(launch_site, flight_number, payload_mass, booster
                              "Class": "Landing Outcome"
                          },
                          color_discrete_sequence=px.colors.qualitative.Dark2,
+                         category_orders={'Class': ['Fail', 'Success']}
                          )
     else:
         filtered_df = filtered_df[filtered_df['Launch_Site'] == launch_site]
@@ -345,6 +346,7 @@ def getLaunchSiteVsPayloadMass(launch_site, flight_number, payload_mass, booster
                              "Class": "Landing Outcome"
                          },
                          color_discrete_sequence=px.colors.qualitative.Dark2,
+                         category_orders={'Class': ['Fail', 'Success']}
                          )
 
         chart_title = "Landing outcome of Launch Site %s against Payload Mass" % (
@@ -352,6 +354,8 @@ def getLaunchSiteVsPayloadMass(launch_site, flight_number, payload_mass, booster
 
     fig.update_xaxes(zeroline=False, linecolor=colors['lineColor'],
                      gridcolor=colors['gridColor'], tickvals=[0, 1])
+    fig.update_yaxes(linecolor=colors['lineColor'], type='category',
+                     gridcolor=colors['gridColor'])
 
     fig = updateChartLayout(filtered_df, fig, chart_title, 250)
 
@@ -393,22 +397,24 @@ def getYearlySuccessTrendLineChart(year, launch_site, flight_number, payload_mas
 
     chart_title = "Success Landing Yearly Trend %s - %s" % (year[0], year[1])
 
-    filtered_df = filtered_df[['Year', 'Class']
-                              ].groupby('Year').mean().reset_index()
+    filtered_df_line = filtered_df[['Year', 'Class']
+                              ].groupby('Year').sum(numeric_only=True).reset_index()
+    
     # print(filtered_df)
     fig = px.line(
-        filtered_df,
+        filtered_df_line,
         x='Year',
         y='Class',
         color_discrete_sequence=['#50C878'],
         labels={
-            'Class': 'Landing Outcome'
+            'Class': 'Successful Landings'
         }
     )
 
     fig.update_yaxes(
-        zeroline=False, linecolor=colors['lineColor'], gridcolor=colors['gridColor'])
-    fig.update_xaxes(zeroline=False, linecolor=colors['lineColor'], type='category',
+        zeroline=False, linecolor=colors['lineColor'], 
+        gridcolor=colors['gridColor'])
+    fig.update_xaxes(zeroline=False, linecolor=colors['lineColor'], type='date',
                      gridcolor=colors['gridColor'])
 
     fig = updateChartLayout(filtered_df, fig, chart_title, 300)
@@ -448,10 +454,16 @@ def getYearlyLaunchesBarchart(year, launch_site, flight_number, payload_mass,  b
 
     chart_title = "Yearly Launches %s - %s" % (year[0], year[1])
 
-    filtered_df = filtered_df[['Year']].value_counts().reset_index()
+    filtered_df_bar = filtered_df[['Year']].value_counts().reset_index().sort_values(by="Year", ascending=True)
+    
+    filtered_df_line = filtered_df[['Year', 'Class']
+                              ].groupby('Year').sum(numeric_only=True).sort_values(by="Year", ascending=True).reset_index()
 
+    df_combined = filtered_df_bar.merge(filtered_df_line, on="Year")
+    
+    #print(df_combined)
     fig = px.bar(
-        filtered_df,
+        df_combined,
         x='Year',
         y='count',
         text_auto='.2s',
@@ -459,11 +471,21 @@ def getYearlyLaunchesBarchart(year, launch_site, flight_number, payload_mass,  b
         labels={
             'count': 'Number of Launches'
         }
+    ).add_traces(
+        px.line(
+            df_combined,
+            x='Year',
+            y='Class',
+            color_discrete_sequence=['#FFBF00'],
+            labels={
+                'Class': 'Successful Landings'
+            }
+        ).update_traces(showlegend=True, name="success").data
     )
 
     fig.update_yaxes(
         zeroline=False, linecolor=colors['lineColor'], gridcolor=colors['gridColor'])
-    fig.update_xaxes(zeroline=False, linecolor=colors['lineColor'], type='category',
+    fig.update_xaxes(zeroline=False, linecolor=colors['lineColor'], type='date',
                      gridcolor=colors['gridColor'], categoryorder='category ascending')
 
     fig = updateChartLayout(filtered_df, fig, chart_title, 300)
@@ -675,7 +697,7 @@ falcon_dash_app.layout = html.Div(
                                                 marks={
                                                     yr: {'label': str(yr), 'style': {
                                                         'color': str(colors['text'])}}
-                                                    for yr in list(range(df['Year'].min(), df['Year'].max() + 1))
+                                                    for yr in list(range(df['Year'].min(), df['Year'].max() + 1, 2))
                                                 },
                                                 value=[df['Year'].min(),
                                                        df['Year'].max()],
@@ -813,12 +835,12 @@ def co2_emissionr_map(co2_year):
         resolution=50, showocean=True, oceancolor="#222",
         showcountries=True, countrycolor="RebeccaPurple"
     )
-    fig.update_layout(plot_bgcolor='rgba(0, 0, 0, 0)', paper_bgcolor='rgba(0, 0, 0, 0)', margin={"r":15,"t":25,"l":20,"b":20})
+    fig.update_layout(plot_bgcolor='rgba(0, 0, 0, 0)', paper_bgcolor='rgba(0, 0, 0, 0)')
     
     return fig
 
 @co2_emission_dash_app.callback(
-    Output('co2_top_5_contributors', 'figure'),
+    Output('co2_top_5_contributors_bar_chart', 'figure'),
     Input('co2_year', 'value')
 )
 def top_5_contributors(year_range):
@@ -906,7 +928,7 @@ def co2_geo_region_line_graph(year_range):
     return fig
 
 @co2_emission_dash_app.callback(
-    Output('co2_top_5_contributors_all_time', 'figure'),
+    Output('co2_top_5_contributors_all_time_pie_chart', 'figure'),
     Input('co2_year', 'value')
 )
 def top_5_contributors_all_time(year_range):
@@ -1049,27 +1071,27 @@ co2_emission_dash_app.layout = html.Div(
                                         ]                          
                                     ),
                                 ],
-                                width=5
+                                className="col col-md-12 col-lg-12 col-xl-5"
                             ),
                             dbc.Col(
                                 [
                                     html.Div(
                                         [
-                                            dcc.Graph(id="co2_top_5_contributors")
+                                            dcc.Graph(id="co2_top_5_contributors_bar_chart")
                                         ]                           
                                     ),
                                 ],
-                                width=4
+                                className="col col-md-6 col-lg-6 col-xl-4"
                             ),
                             dbc.Col(
                                 [
                                     html.Div(
                                         [
-                                            dcc.Graph(id="co2_top_5_contributors_all_time")
+                                            dcc.Graph(id="co2_top_5_contributors_all_time_pie_chart")
                                         ]                           
                                     ),
                                 ],
-                                width=3
+                                className="col col-md-6 col-lg-6 col-xl-3"
                             )
                         ],
                         className='mb-2'
@@ -1084,7 +1106,7 @@ co2_emission_dash_app.layout = html.Div(
                                         ]                           
                                     ),
                                 ],
-                                width=6
+                                className="col col-md-12 col-lg-6"
                             ),
                             dbc.Col(
                                 [
@@ -1094,7 +1116,7 @@ co2_emission_dash_app.layout = html.Div(
                                         ]                           
                                     ),                                    
                                 ],
-                                width=6
+                                className="col col-md-12 col-lg-6"
                             )
                         ],
                         className='mb-3'
@@ -1113,7 +1135,7 @@ co2_emission_dash_app.layout = html.Div(
                                         tooltip={"placement": "top", "always_visible": False},
                                         marks={
                                             yr: {'label': str(yr), 'style': {
-                                                'color': str(colors['text']), 'font-size': '16px'}}
+                                                'color': str(colors['text']), 'font-size': '16px', 'padding-bottom': 35}}
                                             for yr in list(range(co2_all_countries['year'].unique().min(), co2_all_countries['year'].unique().max() + 1, 10))
                                         },
                                         value=[co2_all_countries['year'].unique().min(), co2_all_countries['year'].unique().max()],
@@ -1121,7 +1143,8 @@ co2_emission_dash_app.layout = html.Div(
                                     )
                                 ]
                             )
-                        ]
+                        ],
+                        style={'position': 'fixed', 'width': '100%', 'bottom': '0px', 'background': '#222222'}
                     )                   
                 ]
             ),
@@ -1131,6 +1154,7 @@ co2_emission_dash_app.layout = html.Div(
     ],
     style={
         'padding': 10,
+        'padding-bottom': 50,
         'color': colors['text'],
     }
 )
@@ -1394,8 +1418,8 @@ my_work = [
         'header': 'End-to-end (Deep Learning - MobileNetV2)',
         'application_url': 'alpaca_mobilenetv2',
         'image': 'alpaca_mobilenetv2.png',
-        'title': 'Alpaca / Not Alpaca Binary Classification (Transfer Learning)',
-        'description': "Transfer Learning in Neural Network is a technique used in machine learning where knowledge gained from training one model (source domain) is transferred and applied to a different but related model (target domain). In neural networs, this involves taking a pre-trained model developed for one task and fine-tuned or using its learned features to solve another related task.",
+        'title': 'Binary Classification (Transfer Learning)',
+        'description': "Transfer Learning in Neural Network is a technique used in machine learning where knowledge gained from training one model (source domain) is transferred and applied to a different but related model (target domain). This involves taking a pre-trained model developed for one task and fine-tuned or using its learned features to solve another related task.",
         'github': 'https://github.com/tharangachaminda/transfer_learning_with_mobilenet_v2',
         'icons': ['python', 'jupyterlab', 'tensorflow', 'flask', 'heroku']
     },
