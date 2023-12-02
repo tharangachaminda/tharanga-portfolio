@@ -1284,7 +1284,7 @@ def recommender(title, cosine_sim=cosine_sim):
     # get top 10 matches (indexes)
     # use this indexes again to retrieve movie titles
     top_10_matches = list(similarities.iloc[1:11].index)
-    print(top_10_matches)
+    #print(top_10_matches)
     
     # store best matched titles
     for i in top_10_matches:
@@ -1295,7 +1295,7 @@ def recommender(title, cosine_sim=cosine_sim):
 # load saved model files
 mood_class_strings = ['Sad', 'Happy']
 mood_detection_model = load_model(
-    'ML_models/happy_model.keras')
+    'ML_models/mood_classifier')
 with open('ML_models/lr_banknotes_model.pkl', 'rb') as f:
     banknote_model = pickle.load(f)
 
@@ -1305,10 +1305,9 @@ with open('ML_models/Blackfriday_DT_model.pkl', 'rb') as f:
 # this list is not essential. We can use model output index as the result. But for the consistancy of the program I'm using it here.
 sign_language_class_strings = [0, 1, 2, 3, 4, 5]
 sign_language_model = load_model(
-    'ML_models/sign_laguange.keras')
+    'ML_models/sign_laguange.h5')
 
-sign_language_resnet_model = load_model(
-    'ML_models/sign_language_resnet50')
+#sign_language_resnet_model = load_model('ML_models/sign_language_resnet50')
 
 alpaca_mobilenetv2_model = load_model(
     'ML_models/alpaca_mobile_netv2')
@@ -1343,7 +1342,7 @@ my_work = [
         'title': 'Banknotes Authentication',
         'description': "Banknote analysis refers to the examination of paper currency to determine its legitimacy and identify potential counterfeits. In this python project, I am trying to build a <b>Classification Machine Learning models</b> to predict banknotes are genuine or forged.",
         'github': 'https://github.com/tharangachaminda/banknotes_analysis',
-        'icons': ['python', 'jupyterlab', 'flask', 'heroku']
+        'icons': ['python', 'jupyterlab', 'flask', 'aws']
     },
 
     {
@@ -1353,7 +1352,7 @@ my_work = [
         'title': 'SpaceX Falcon 9 1st Stage Landing Prediction',
         'description': "SpaceX re-uses the Stage 1 boosters of Falcon 9 rockets. This project is an analysis for successful Stage 1 landing prediction. I have used SpaceX API and Webscraping for data collection, SQlite database for data storage.",
         'github': 'https://github.com/tharangachaminda/Falcon9_First_stage_Landing',
-        'icons': ['python', 'jupyterlab', 'sql', 'sqlite', 'folium', 'plotly-dash', 'heroku']
+        'icons': ['python', 'jupyterlab', 'sql', 'sqlite', 'folium', 'plotly-dash', 'aws']
     },
 
     {
@@ -1362,7 +1361,7 @@ my_work = [
         'title': 'Netflix Recommender System (Popularity Based)',
         'description': "Netflix Recommender system is one of the best recommender systems in the world. In this project I've used <b>movies and rating</b> datasets and <b>NLTK toolkit</b> to build this popularity based recommender system.",
         'github': 'https://github.com/tharangachaminda/popularity-based-recommendation-system',
-        'icons': ['Python', 'jupyterlab', 'nltk', 'flask', 'heroku']
+        'icons': ['Python', 'jupyterlab', 'nltk', 'flask', 'aws']
     },
 
     {
@@ -1372,7 +1371,7 @@ my_work = [
         'title': 'Netflix Recommender System (Content Based)',
         'description': "Netflix Recommender system is one of the best recommender systems in the world. In this project I've used <b>movies datasets</b> and <b>Cosine similarity</b> to build this content based recommender system.",
         'github': 'https://github.com/tharangachaminda/content_based_recommender_system',
-        'icons': ['Python', 'jupyterlab', 'nltk', 'flask', 'heroku']
+        'icons': ['Python', 'jupyterlab', 'nltk', 'flask', 'aws']
     },
 
     {
@@ -1381,7 +1380,7 @@ my_work = [
         'title': 'Bookstore Web scraping',
         'description': "In this project I have built a mechanism to collect information about every book in the website, scraping through pagination. This project is associated with https://books.toscrape.com/ website which is specially design for training web scraping. ",
         'github': 'https://github.com/tharangachaminda/bookstore_webscraping',
-        'icons': ['Python', 'jupyterlab', 'flask', 'heroku']
+        'icons': ['Python', 'jupyterlab', 'flask', 'aws']
     },
 
     {
@@ -1391,7 +1390,7 @@ my_work = [
         'title': 'Mood Classifier',
         'description': "A mood classification is a type of machine learning task that is used to recognize human moods or emotions. In this project I have implemented a CNN model for recognizing smiling or not smiling humans using Tensorflow Keras Sequential API.",
         'github': 'https://github.com/tharangachaminda/cnn_mood_classifier',
-        'icons': ['python', 'jupyterlab', 'tensorflow', 'flask', 'heroku']
+        'icons': ['python', 'jupyterlab', 'tensorflow', 'flask', 'aws']
     },
 
     {
@@ -1401,17 +1400,17 @@ my_work = [
         'title': 'Sign Language Digits Recognition',
         'description': "Sing language is a visual-gestural language used by deaf and hard-to-hearing individuals to convey imformation, thoughts and emotions. In this project I have implemented a CNN model for recognizing sign language digits 0 to 5 using Keras Functional API.",
         'github': 'https://github.com/tharangachaminda/cnn_sign_language_detection',
-        'icons': ['python', 'jupyterlab', 'tensorflow', 'flask', 'heroku']
+        'icons': ['python', 'jupyterlab', 'tensorflow', 'flask', 'aws']
     },
 
     {
         'header': 'End-to-end (Deep Learning - Residual Network)',
-        'application_url': 'sign_language_recognition_resnet',
+        #'application_url': 'sign_language_recognition_resnet',
         'image': 'sign_language_digits.png',
         'title': 'Sign Language Digits Recognition',
         'description': "Very deep neural networks suffer from a problem called vanishing/exploding gradients. Deep Residual Learning for Image Recognition resolves theis issue. A Residual Network, also known as ResNet, is a type of deep learning network architecture that introduces the concept of residual learning.",
         'github': 'https://github.com/tharangachaminda/cnn_resnet',
-        'icons': ['python', 'jupyterlab', 'tensorflow', 'flask', 'heroku']
+        'icons': ['python', 'jupyterlab', 'tensorflow', 'flask', 'aws']
     },
 
     {
@@ -1421,7 +1420,7 @@ my_work = [
         'title': 'Binary Classification (Transfer Learning)',
         'description': "Transfer Learning in Neural Network is a technique used in machine learning where knowledge gained from training one model (source domain) is transferred and applied to a different but related model (target domain). This involves taking a pre-trained model developed for one task and fine-tuned or using its learned features to solve another related task.",
         'github': 'https://github.com/tharangachaminda/transfer_learning_with_mobilenet_v2',
-        'icons': ['python', 'jupyterlab', 'tensorflow', 'flask', 'heroku']
+        'icons': ['python', 'jupyterlab', 'tensorflow', 'flask', 'aws']
     },
     
     {
@@ -1472,9 +1471,9 @@ def predict_cnn(task):
         if task == "sign_language":
             model_obj = sign_language_model
             output_class_strings = sign_language_class_strings
-        elif task == 'sign_language_resnet':
-            model_obj = sign_language_resnet_model
-            output_class_strings = sign_language_class_strings
+        #elif task == 'sign_language_resnet':
+            #model_obj = sign_language_resnet_model
+            #output_class_strings = sign_language_class_strings
         elif task == 'alpaca_mobilenetv2':
             model_obj = alpaca_mobilenetv2_model
             output_class_strings = ['Not an Alpaca', 'Alpaca']
@@ -1751,5 +1750,5 @@ def co2_emission_lstm():
         return jsonify(response_json)
 
 if __name__ == "__main__":
-    # app.run(host='0.0.0.0')
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000)
+    #app.run(debug=True)
