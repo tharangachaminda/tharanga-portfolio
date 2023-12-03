@@ -1405,7 +1405,7 @@ my_work = [
 
     {
         'header': 'End-to-end (Deep Learning - Residual Network)',
-        #'application_url': 'sign_language_recognition_resnet',
+        'application_url': 'sign_language_recognition_resnet',
         'image': 'sign_language_digits.png',
         'title': 'Sign Language Digits Recognition',
         'description': "Very deep neural networks suffer from a problem called vanishing/exploding gradients. Deep Residual Learning for Image Recognition resolves theis issue. A Residual Network, also known as ResNet, is a type of deep learning network architecture that introduces the concept of residual learning.",
