@@ -140,7 +140,14 @@
             </form>
         </div>
         <div class="col">
-            <h2>Model summary</h2>
+            <h2>Development summary</h2>
+            <h4>High-level architecture of the application</h4>
+            <img src="{{ url_for("static", filename="assets/images/archi_ml.png") }}" />
+            <h4>Model summary</h4>
+            <div class="mb-2">
+                <span class="badge bg-primary p-2">Training accuracy: 65%</span>
+                <span class="badge bg-primary p-2">Validation accuracy: 65%</span>
+            </div>
             <p>In this dataset we have a set of <b>Categorical Independent Variables</b> and <b>Continuous Dependent Variable</b>. Based on the analysis I prefered to try out following algorithms.</p>
             <ol>
                 <li>Decision Tree</li>

@@ -18,7 +18,7 @@
         <div class="row g-0">
           <div
             class="col-md-3 card-image"
-            style="background-image: url({{ url_for('static', filename='assets/images/')}}{{ work['image'] }});"
+            style="background-image: url({{ url_for('static', filename='assets/images/')}}{{ work['image'] | lower }});"
           ></div>
           <div class="col-md-9">
             <div class="card-body">

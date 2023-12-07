@@ -6,9 +6,15 @@ import csv
 import sqlite3
 import sqlalchemy
 import datetime
+import os.path
+import sys
+sys.path.append('../../')
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+db_path = os.path.join(BASE_DIR, "falcon9.db")
 
 # fetch data from SQlite database abd create a dataframe
-con = sqlite3.connect("./dashboards/falcon9/falcon9.db")
+con = sqlite3.connect(db_path)
 cur = con.cursor()
 
 sql_query = "SELECT * FROM `falcon9_tbl`"
@@ -62,9 +68,9 @@ def getOrbitTypeOptions():
 
     return orbitTypeOptions
 
-
-app = Dash(external_stylesheets=[dbc.themes.SOLAR])  # Dash(__name__)
-
+# Falcon 9 Analysis app
+app = Dash(external_stylesheets=[dbc.themes.SOLAR, dbc.icons.BOOTSTRAP], requests_pathname_prefix="/falcon9_dashboard/")
+app.title = "Falcon 9"
 
 @app.callback(
     Output(component_id="success_launchsite_pie_chart",
@@ -197,7 +203,7 @@ def getSuccessOrbitPieChart(orbit_type, launch_site, flight_number, payload_mass
                      title=chart_title,
                      color_discrete_sequence=color_sequence,
                      hole=.3,)
-    print('len df 2: \n', filtered_df)
+    #print('len df 2: \n', filtered_df)
     fig = updateChartLayout(filtered_df, fig, chart_title, pieChartHeight)
 
     return fig
@@ -302,6 +308,7 @@ def getLaunchSiteVsPayloadMass(launch_site, flight_number, payload_mass, booster
                              "Class": "Landing Outcome"
                          },
                          color_discrete_sequence=px.colors.qualitative.Dark2,
+                         category_orders={'Class': ['Fail', 'Success']}
                          )
     else:
         filtered_df = filtered_df[filtered_df['Launch_Site'] == launch_site]
@@ -312,14 +319,15 @@ def getLaunchSiteVsPayloadMass(launch_site, flight_number, payload_mass, booster
                              "Class": "Landing Outcome"
                          },
                          color_discrete_sequence=px.colors.qualitative.Dark2,
+                         category_orders={'Class': ['Fail', 'Success']}
                          )
 
         chart_title = "Landing outcome of Launch Site %s against Payload Mass" % (
             launch_site)
 
-    fig.update_yaxes(zeroline=False,
-                     tickvals=[0, 1], linecolor=colors['lineColor'], gridcolor=colors['gridColor'])
     fig.update_xaxes(zeroline=False, linecolor=colors['lineColor'],
+                     gridcolor=colors['gridColor'], tickvals=[0, 1])
+    fig.update_yaxes(linecolor=colors['lineColor'], type='category',
                      gridcolor=colors['gridColor'])
 
     fig = updateChartLayout(filtered_df, fig, chart_title, 250)
@@ -332,8 +340,6 @@ def getLaunchSiteVsPayloadMass(launch_site, flight_number, payload_mass, booster
 
 
 # YEARLY TREND CHARTS
-
-
 @app.callback(
     Output('success_yearly_trend_linechart', 'figure'),
     Input('year', 'value'),
@@ -362,22 +368,24 @@ def getYearlySuccessTrendLineChart(year, launch_site, flight_number, payload_mas
 
     chart_title = "Success Landing Yearly Trend %s - %s" % (year[0], year[1])
 
-    filtered_df = filtered_df[['Year', 'Class']
-                              ].groupby('Year').mean().reset_index()
+    filtered_df_line = filtered_df[['Year', 'Class']
+                              ].groupby('Year').sum(numeric_only=True).reset_index()
+    
     # print(filtered_df)
     fig = px.line(
-        filtered_df,
+        filtered_df_line,
         x='Year',
         y='Class',
         color_discrete_sequence=['#50C878'],
         labels={
-            'Class': 'Landing Outcome'
+            'Class': 'Successful Landings'
         }
     )
 
     fig.update_yaxes(
-        zeroline=False, linecolor=colors['lineColor'], gridcolor=colors['gridColor'])
-    fig.update_xaxes(zeroline=False, linecolor=colors['lineColor'], type='category',
+        zeroline=False, linecolor=colors['lineColor'], 
+        gridcolor=colors['gridColor'])
+    fig.update_xaxes(zeroline=False, linecolor=colors['lineColor'], type='date',
                      gridcolor=colors['gridColor'])
 
     fig = updateChartLayout(filtered_df, fig, chart_title, 300)
@@ -417,10 +425,16 @@ def getYearlyLaunchesBarchart(year, launch_site, flight_number, payload_mass,  b
 
     chart_title = "Yearly Launches %s - %s" % (year[0], year[1])
 
-    filtered_df = filtered_df[['Year']].value_counts().reset_index()
+    filtered_df_bar = filtered_df[['Year']].value_counts().reset_index().sort_values(by="Year", ascending=True)
+    
+    filtered_df_line = filtered_df[['Year', 'Class']
+                              ].groupby('Year').sum(numeric_only=True).sort_values(by="Year", ascending=True).reset_index()
 
+    df_combined = filtered_df_bar.merge(filtered_df_line, on="Year")
+    
+    #print(df_combined)
     fig = px.bar(
-        filtered_df,
+        df_combined,
         x='Year',
         y='count',
         text_auto='.2s',
@@ -428,11 +442,21 @@ def getYearlyLaunchesBarchart(year, launch_site, flight_number, payload_mass,  b
         labels={
             'count': 'Number of Launches'
         }
+    ).add_traces(
+        px.line(
+            df_combined,
+            x='Year',
+            y='Class',
+            color_discrete_sequence=['#FFBF00'],
+            labels={
+                'Class': 'Successful Landings'
+            }
+        ).update_traces(showlegend=True, name="success").data
     )
 
     fig.update_yaxes(
         zeroline=False, linecolor=colors['lineColor'], gridcolor=colors['gridColor'])
-    fig.update_xaxes(zeroline=False, linecolor=colors['lineColor'], type='category',
+    fig.update_xaxes(zeroline=False, linecolor=colors['lineColor'], type='date',
                      gridcolor=colors['gridColor'], categoryorder='category ascending')
 
     fig = updateChartLayout(filtered_df, fig, chart_title, 300)
@@ -495,8 +519,7 @@ def updateChartLayout(filtered_df, fig, chart_title, height):
 
     return fig
 
-
-falcon9_layout = html.Div(
+app.layout = html.Div(
     [
         dbc.Container(
             dbc.Row(
@@ -508,8 +531,7 @@ falcon9_layout = html.Div(
                                     dbc.Col(
                                         html.Div(
                                             html.Img(
-                                                src=app.get_asset_url(
-                                                    'Falcon_9_logo.png'),
+                                                src="/static/assets/images/Falcon_9_logo.png",
                                                 width=100,
                                                 style={
                                                     'margin-bottom': '20px',
@@ -539,6 +561,23 @@ falcon9_layout = html.Div(
                                 [
                                     dbc.Col(
                                         [
+                                            html.Div(
+                                                [
+                                                    dbc.Button(
+                                                        [
+                                                            html.I(className="bi bi-house-fill me-2"),
+                                                            "Back to Home"
+                                                        ], 
+                                                        href="javascript:history.back()",
+                                                        id='back_button', 
+                                                        color="warning", 
+                                                        className="me-1", 
+                                                        n_clicks=0)
+                                                ]
+                                            ),
+                                            
+                                            html.Hr(),
+                                            
                                             dbc.Label("Launch Site"),
                                             dcc.Dropdown(
                                                 id='launch_site',
@@ -629,7 +668,7 @@ falcon9_layout = html.Div(
                                                 marks={
                                                     yr: {'label': str(yr), 'style': {
                                                         'color': str(colors['text'])}}
-                                                    for yr in list(range(df['Year'].min(), df['Year'].max() + 1))
+                                                    for yr in list(range(df['Year'].min(), df['Year'].max() + 1, 2))
                                                 },
                                                 value=[df['Year'].min(),
                                                        df['Year'].max()],

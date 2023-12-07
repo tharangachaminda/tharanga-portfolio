@@ -7,7 +7,7 @@
         <div class="col">
             <h2>Sign Language Digits Recognition (ResNet50)</h2>
             <!--p>You can upload your own image and see what the model says about it.</p-->
-            <p class="alert alert-warning"><i class="bi bi-info-circle-fill"></i> Due to storage limitation in Heroku I couldn't upload this large ResNet50 model files.</p>
+            <p class="alert alert-warning"><i class="bi bi-info-circle-fill"></i> Due to resource limitation in AWS EC2 instanse, I couldn't process this large ResNet50 model files. Sorry about that.</p>
             <!--form class="no-submit-form">
                 <div class="form-group mb-2">
                     <label for=""image_file>Pick your image</label>
@@ -28,7 +28,14 @@
             </form-->
         </div>
         <div class="col">
-            <h2>Model summary</h2>
+            <h2>Development summary</h2>
+            <h4>High-level architecture of the application</h4>
+            <img src="{{ url_for("static", filename="assets/images/archi_dl_tr_serving.png") }}" />
+            <h4>Model summary</h4>
+            <div class="mb-2">
+                <span class="badge bg-primary p-2">Training accuracy: 99%</span>
+                <span class="badge bg-primary p-2">Validation accuracy: 80%</span>
+            </div>
             <pre style="max-height: 700px; overflow: auto;">
                 Model: "model_3"
 __________________________________________________________________________________________________

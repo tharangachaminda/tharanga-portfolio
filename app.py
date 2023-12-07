@@ -1,16 +1,6 @@
-import pickle
 from flask import Flask, render_template, request, jsonify, url_for
-from PIL import Image
-import os
-import numpy as np
-import time
-import sklearn
-from sklearn.preprocessing import StandardScaler
-from sklearn.preprocessing import MinMaxScaler
-import tensorflow as tf
-from tensorflow.keras.models import load_model
-
-# Falcon9 Plotly dash imports
+import json
+import datetime
 from dash import Dash, html, dcc, callback, Output, Input, ctx, State
 import plotly.express as px
 import pandas as pd
@@ -18,9 +8,24 @@ import dash_bootstrap_components as dbc
 import csv
 import sqlite3
 import sqlalchemy
-import datetime
+import os
+import os.path
+import sys
+import requests
 
-# Recomender system imports
+#import tensorflow as tf
+#from tensorflow.keras.models import load_model
+
+
+import pickle
+import numpy as np
+import time
+
+from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import MinMaxScaler
+
+from PIL import Image
+
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.feature_extraction.text import CountVectorizer # Document Term Frequency
 import rake_nltk
@@ -29,11 +34,546 @@ import nltk
 nltk.download('stopwords')
 nltk.download('punkt')
 
-# CO2 emission
-import folium
+#from ml_apps import app as machine_leanrning_apps
+#from dl_apps import app as deep_learning_apps
+#from recommender_system import app as recommender_system
+#from dashboards.falcon9.falcon9 import app as falcon9_dashboard
+#from dashboards.co2_emission.co2_dash import app as co2_emission_dashboard
+
+app = Flask(__name__)
+    
+my_work_f = open("my_work.json")
+my_work = json.load(my_work_f)
+
+@app.context_processor
+def inject_now():
+    return {'now': datetime.datetime.utcnow()}
+    
+@app.route("/")
+def home():
+    return render_template('home.html', mywork=my_work)
+
+# ML app routes
+with open('ML_models/lr_banknotes_model.pkl', 'rb') as f:
+    banknote_model = pickle.load(f)
+
+with open('ML_models/Blackfriday_DT_model.pkl', 'rb') as f:
+    black_friday_dt_model = pickle.load(f)
+    
+@app.route("/black_friday")
+def black_friday():
+    return render_template('black_friday.html', mywork=my_work)
+
+
+@app.route('/black_friday_prediction', methods=['POST'])
+def black_friday_prediction():
+    if request.method == 'POST':
+        form_data = request.get_json()
+
+        city_category_options = np.array([1, 2, 3])
+        city_category_one_hot = city_category_options == int(
+            form_data['city_category'])
+        city_category_one_hot = np.array(
+            list(map(int, city_category_one_hot))).astype('float')
+
+        # prepare data array
+        input_data = np.array([
+            form_data['gender'],
+            form_data['age'],
+            form_data['occupation'],
+            form_data['stay_in_current_city'],
+            form_data['marital_status'],
+            form_data['product_main_category'],
+            form_data['product_category_1'],
+            form_data['product_category_2'],
+        ]).astype('float')
+
+        input_data_ = np.append(input_data, city_category_one_hot)
+        input_data_ = input_data_.reshape(-1, 1)
+
+        # scaling data using standardScaler
+        std_scaler = StandardScaler()
+        input_data_scalled = std_scaler.fit_transform(input_data_)
+
+        # predict now
+        input_data_final = input_data_scalled.reshape(1, -1)
+        print(input_data_final)
+        pred = black_friday_dt_model.predict(input_data_final)
+
+        return render_template('model_result.html', message={"type": 'normal', 'text': f"Predicted purchase amount for above customer: <b>${str(round(pred[0], 2))}</b>"})
+
+
+@app.route('/banknotes_authentication')
+def banknotes_authentication():
+    return render_template('banknotes_authentication.html')
+
+
+@app.route('/banknotes_auth', methods=['POST'])
+def banknotes_auth():
+    if request.method == 'POST':
+        form_data_json = request.get_json()
+
+        try:
+            model_input = np.array([
+                form_data_json['variance'],
+                form_data_json['skewness'],
+                form_data_json['curtosis'],
+                form_data_json['entropy']]).astype('float')
+
+            model_input = model_input.reshape(1, - 1)
+            predict = banknote_model.predict(model_input)
+        except:
+            return render_template('model_result.html', message={'type': 'error', 'text': "Something went wrong!"})
+
+        output_str = ["invalid", "valid"]
+
+        return render_template('model_result.html', message={'type': 'normal', 'text': f"Model says it's a <b>{output_str[predict[0]]}</b> banknote."})
+
+##### Deep learning apps #####
+
+# Tf model serving with S3 bucket
+def get_tf_serving_rest_url(model_name, host='34.215.236.233', port='8501', verb='predict'):
+     url = "http://{0}:{1}/v1/models/{2}:predict".format(host,port,model_name)
+     
+     return url
+     
+def tr_serving_rest_request(data, url):
+    payload = json.dumps({"instances": data})
+    response = requests.post(url=url, data=payload)
+    return response
+
+# load saved model files
+mood_class_strings = ['Sad', 'Happy']
+#mood_detection_model = load_model('ML_models/mood_classifier')
+mood_detection_model = "mood_classifier_1701759497220"
+
+
+# this list is not essential. We can use model output index as the result. But for the consistancy of the program I'm using it here.
+sign_language_class_strings = [0, 1, 2, 3, 4, 5]
+#sign_language_model = load_model('ML_models/sign_laguange.h5')
+sign_language_model = "cnn_sign_language_detection_1701800022195"
+
+#sign_language_resnet_model = load_model('ML_models/sign_language_resnet50')
+sign_language_resnet_model = "resnet_50_1701760206020"
+
+#alpaca_mobilenetv2_model = load_model('ML_models/alpaca_mobile_netv2')
+alpaca_mobilenetv2_model = "alpaca_mobile_netv2_1701759341886"
+
+#co2_emission_lstm_model = load_model('ML_models/co2_emission_lstm')
+co2_emission_lstm_model = "co2_emission_lstm_1701759497110"
+
+co2_emission_scalerfile = 'ML_models/co2_emission_data/scaler.sav'
+co2_emission_scaler = pickle.load(open(co2_emission_scalerfile, 'rb'))
+co2_orig_csv = pd.read_csv('ML_models/co2_emission_data/year_emission.csv')
+
+up_path = os.path.join(os.getcwd(), 'static', 'assets', 'temp')
+
+ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg'])
+
+my_work_f = open("my_work.json")
+my_work = json.load(my_work_f)
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def imageToArray(imageName, inputWidth=64, inputHeight=64, preprocessing_method=None):
+    # Load the image and resize it to the desired dimensions
+    # image_path = f'images/{imageName}'
+    image_path = imageName
+    width, height = inputWidth, inputHeight
+
+    image = Image.open(image_path)
+
+    if image.width < inputWidth or image.height < inputHeight:
+        return False
+
+    image = image.resize((width, height))
+    #print(image.width)
+    # Convert the image to a NumPy array and normalize the pixel values (if necessary)
+    image_array = np.array(image)
+    if preprocessing_method is None:
+        image_array = image_array / 255.  # Normalize the pixel values between 0 and 1
+
+    # plt.imshow(image_array)
+    # plt.show()
+
+    # print(image_array.shape)
+    # Reshape the image array to match the input shape of your model
+    # Assumes the input shape is (width, height, 3)
+    try:
+        image_array = image_array.reshape(1, width, height, 3)
+        if preprocessing_method is not None:
+            image_array = preprocessing_method(image_array)
+    except:
+        if os.path.exists(image_path):
+            os.remove(image_path)
+        return False
+
+    return image_array
+
+
+@app.route("/mood_detection")
+def mood_detection():
+    return render_template("mood_detection.html")
+
+
+@app.route("/predict_cnn/<task>", methods=["POST"])
+def predict_cnn(task):
+    if request.method == 'POST':
+        if 'image_file' not in request.files:
+            return render_template('model_result.html', message={'type': 'error', 'text': 'You have not uploaded an image.'})
+
+        model_obj = mood_detection_model
+        output_class_strings = mood_class_strings
+        inputImageWidth = 64
+        inputImageHeight = 64
+        preprocessing_method = None
+
+        if task == "sign_language":
+            model_obj = sign_language_model
+            output_class_strings = sign_language_class_strings
+        #elif task == 'sign_language_resnet':
+            #model_obj = sign_language_resnet_model
+            #output_class_strings = sign_language_class_strings
+        elif task == 'alpaca_mobilenetv2':
+            model_obj = alpaca_mobilenetv2_model
+            output_class_strings = ['Not an Alpaca', 'Alpaca']
+            inputImageWidth = 160
+            inputImageHeight = 160
+            #preprocessing_method = tf.keras.applications.mobilenet_v2.preprocess_input
+
+        image = request.files['image_file']
+
+        if not allowed_file(image.filename):
+            return render_template('model_result.html', message={'type': 'error', 'text': 'Not a valid image file.'})
+
+        file_extension = image.filename.rsplit('.', 1)[1]
+        temp_filename = f'{int(time.time())}.{file_extension}'
+        image.save(os.path.join(up_path, temp_filename))
+        temp_file_path = os.path.join(up_path, temp_filename)
+        imageArray = imageToArray(
+            temp_file_path, inputImageWidth, inputImageHeight, preprocessing_method)
+
+        if imageArray is False:
+            return render_template('model_result.html', message={'type': 'error', 'text': 'Your image has some issues.'})
+
+        tf_serving_url = get_tf_serving_rest_url(model_obj)
+        
+        model_predict_prob = []
+        #model_predict_prob = model_obj.predict(imageArray)
+        tr_serving_response = tr_serving_rest_request(imageArray.tolist(), tf_serving_url)
+        tr_serving_response_json = tr_serving_response.json()
+        print(tr_serving_response_json)
+        
+        # error handling
+        if 'error' in tr_serving_response_json:
+            return render_template('model_result.html', message={'type': 'error', 'text': "Something went wrong!"})
+        
+        model_predict_prob = tr_serving_response_json['predictions']
+        print(model_predict_prob)
+
+        if task == 'sign_language' or task == 'sign_language_resnet':
+            model_predict_int = np.argmax(model_predict_prob)
+        else:
+            model_predict_int = int(model_predict_prob[0][0] > 0.5)
+
+        print(model_predict_prob[0][0], model_predict_int)
+        if os.path.exists(temp_file_path):
+            os.remove(temp_file_path)
+        else:
+            print('file path does not exist')
+
+        model_final_output = output_class_strings[model_predict_int]
+
+        return render_template('model_result.html', message={'type': 'normal', 'text': f'Model predicts as <b>"{model_final_output}"</b> with probability {model_predict_prob}'})
+
+
+@app.route('/sign_language_recognition')
+def sign_language_recognition():
+    #model_summary = sign_language_model.to_json()
+    # print(model_summary)
+    return render_template("sign_language_detection.html")
+
+
+@app.route('/sign_language_recognition_resnet')
+def sign_language_recognition_resnet():
+    return render_template('resnet.html')
+
+
+@app.route('/alpaca_mobilenetv2')
+def alpaca_mobilenetv2():
+    return render_template('alpaca_mobilenetv2.html')
+
+
+
+@app.route('/co2_emission_lstm', methods=['GET', 'POST'])
+def co2_emission_lstm():
+    if request.method == 'GET':
+        return render_template('co2_emission_lstm.html', params={'last_year': int(co2_orig_csv['year'].iloc[-1])})
+    elif request.method == 'POST':
+        request_json = request.get_json()
+        
+        window_size = 2
+        
+        # validation set
+        val_data = np.array([[0.42428668],
+                            [0.47168195],
+                            [0.49305629],
+                            [0.5446335 ],
+                            [0.47121728],
+                            [0.5265118 ],
+                            [0.49026836],
+                            [0.46610604],
+                            [0.50234947],
+                            [0.61154451],
+                            [0.67799085],
+                            [0.56786648],
+                            [0.71284033],
+                            [0.8410864 ],
+                            [0.91403795],
+                            [0.98048429],
+                            [0.90288613],
+                            [1.        ]])
+        
+        x_input = val_data[-(window_size):].reshape(1, -1)
+        
+        temp_input = list(x_input)
+        temp_input = temp_input[0].tolist() # this is the inputs for starting prediction
+        
+        tf_serving_url = get_tf_serving_rest_url(co2_emission_lstm_model)
+        
+        lst_output=[]
+        n_steps=window_size
+        number_of_years_to_predict = int(request_json['to_year']) - 2019
+        i=0
+        while(i<number_of_years_to_predict):
+            
+            if(len(temp_input)>n_steps):
+                #print(temp_input)
+                x_input=np.array(temp_input[1:])
+                #print("{} Year input {}".format(i,x_input))
+                x_input=x_input.reshape(1,-1)
+                x_input = x_input.reshape((1, n_steps, 1))
+                #print(x_input)
+                #yhat = co2_emission_lstm_model.predict(x_input, verbose=0)
+                tr_serving_response = tr_serving_rest_request(x_input.tolist(), tf_serving_url)
+                tr_serving_response_json = tr_serving_response.json()
+                
+                # error handling
+                if 'error' in tr_serving_response_json:
+                    return render_template('model_result.html', message={'type': 'error', 'text': "Something went wrong!"})
+        
+                yhat = tr_serving_response_json['predictions']
+                #print("{} Year output {}".format(i,yhat))
+                temp_input.extend(yhat[0])
+                temp_input=temp_input[1:]
+                #print(temp_input)
+                lst_output.extend(yhat)
+                i=i+1
+            else:
+                x_input = x_input.reshape((1, n_steps,1))
+                #yhat = co2_emission_lstm_model.predict(x_input, verbose=0)
+                tr_serving_response = tr_serving_rest_request(x_input.tolist(), tf_serving_url)
+                tr_serving_response_json = tr_serving_response.json()
+                
+                # error handling
+                if 'error' in tr_serving_response_json:
+                    return render_template('model_result.html', message={'type': 'error', 'text': "Something went wrong!"})
+                
+                yhat = tr_serving_response_json['predictions']
+                #print(yhat[0])
+                temp_input.extend(yhat[0])
+                #print(len(temp_input))
+                lst_output.extend(yhat)
+                i=i+1
+        
+        final_output = co2_emission_scaler.inverse_transform(lst_output).flatten()
+        x_labels = co2_orig_csv['year'].tolist() + np.arange(int(co2_orig_csv['year'].iloc[-1]) + 1, int(request_json['to_year']) + 1).tolist()
+        
+        chart_data_orig = list(co2_orig_csv['value']) + [0] * len(final_output)
+        chart_data_predicted = [0] * (len(co2_orig_csv['value']) - 1) + list([co2_orig_csv['value'].iloc[-1]]) + list(final_output)
+        
+        response_json = {"x_labels": x_labels, "orig": chart_data_orig, "predicted": chart_data_predicted}
+        return jsonify(response_json)
+
+# Recommender system
+recommender_system_df = pd.read_csv('https://query.data.world/s/uikepcpffyo2nhig52xxeevdialfl7')
+recommender_system_df_orig = recommender_system_df[['Title', 'Year', 'Genre','Director','Actors','Plot', 'Poster', 'imdbRating']].set_index('Title')
+recommender_system_df = recommender_system_df[['Title', 'Year', 'Genre','Director','Actors','Plot', 'Poster', 'imdbRating']]
+
+def recomender_preprocessing(movie_df):
+    # data preprocessing for recomender system
+    # set lowercase and split on commas
+    movie_df['Actors'] = movie_df['Actors'].map(lambda x: x.lower().split(','))
+    movie_df['Genre'] = movie_df['Genre'].map(lambda x: x.lower().split(','))
+    movie_df['Director'] = movie_df['Director'].map(lambda x: x.lower().split(' '))
+
+    # join Actors and Director names as a single string
+    movie_df['Actors'] = movie_df.apply(lambda row: [x.replace(' ', '') for x in row['Actors']], axis=1)
+    movie_df['Director'] = movie_df.apply(lambda row: ''.join(row['Director']), axis=1)
+    # for index, row in movie_df.iterrows():
+    #     #print(index)
+    #     row['Actors'] = [x.replace(' ', '') for x in row['Actors']]
+    #     row['Director'] = ''.join(row['Director'])
+        
+    #     movie_df.loc[:, ('Actors', index)] = row['Actors']
+    #     movie_df.loc[:, ('Director', index)] = row['Director']
+    
+    return movie_df
+
+recommender_system_df = recomender_preprocessing(recommender_system_df)
+
+# Extract keywords using Rake()
+
+def extract_keywords(movie_df):
+    movie_df['Key_words'] = "" # initialize the column for storing keywords
+    
+    for index, row in movie_df.iterrows():
+        plot = row['Plot']
+        
+        # initiate Rake
+        r = Rake()
+        
+        # extracting the words by passing the text
+        r.extract_keywords_from_text(plot)
+        
+        # preparing a dictionary with keywords and their scores
+        keyword_dict_score = r.get_word_degrees()
+        
+        # assign keywords to the new column
+        row['Key_words'] = list(keyword_dict_score.keys())
+       
+    # we do not need 'Plot' column anymore
+    movie_df.drop('Plot', axis=1, inplace=True)
+    
+    # set Title as index, then we can easily identify records rather than using numerical indices
+    movie_df.set_index('Title', inplace=True)
+    
+    return movie_df 
+
+recommender_system_df = extract_keywords(recommender_system_df)
+
+# create bag of words
+def create_bag_of_words(movie_df):
+    # initialize bag_of_words column
+    movie_df['bag_of_words'] = ""
+    
+    columns = movie_df.columns
+    # for index, row in movie_df.iterrows():
+    #     words = ''
+    #     for col in columns:
+    #         if col == 'Director':
+    #             #print(row[col])
+    #             words += row[col] + ' '
+    #         elif col == 'Actors':
+    #             words += ' '.join(row[col]) + ' '
+    #     movie_df.loc[:, ('bag_of_words', index)] = words
+    
+    movie_df['bag_of_words'] = movie_df.apply(
+        lambda row: bag_of_words_row(row['Actors'], row['Director']),
+        axis=1
+    )
+        
+    # now we only need the index and the bag_of_words column. So, we drop other columns
+    keep_cols = ['bag_of_words', 'Title', 'Year', 'Director', 'Poster', 'imdbRating']
+    movie_df.drop([col for col in columns if col not in keep_cols], axis=1, inplace=True)
+    
+    return movie_df
+
+def bag_of_words_row(actors, director):
+    words = ''
+    words += director + ' '
+    words += ' '.join(actors) + ' '
+    
+    return words
+
+recommender_system_df = create_bag_of_words(recommender_system_df)
+#print(recommender_system_df[['Director', 'bag_of_words']])
+#print(recommender_system_df)
+
+# apply Countervectorizer
+# this tokenize the words by counting the frequesncy. This is needed for calculate Cosine similarity
+# after that in the same function cosine_similarity finction is also applied and return cosine_sim matrix
+def count_vectorizer(df):
+    count_vector = CountVectorizer()
+    count_matrix = count_vector.fit_transform(df['bag_of_words'])
+    
+    cosine_sim = cosine_similarity(count_matrix, count_matrix)
+    
+    return cosine_sim
+
+cosine_sim = count_vectorizer(recommender_system_df)
+
+# implement recomender function
+indeces = pd.Series(recommender_system_df.index)
+
+def recommender(title, cosine_sim=cosine_sim):
+    recommendations = []
+    
+    # get relevant indeces
+    if len(indeces[indeces == title]) > 0:
+        search_idx = indeces[indeces == title].index[0]
+    else:
+        return []
+    
+    similarities = pd.Series(cosine_sim[search_idx]).sort_values(ascending=False)
+    
+    # get top 10 matches (indexes)
+    # use this indexes again to retrieve movie titles
+    top_10_matches = list(similarities.iloc[1:11].index)
+    #print(top_10_matches)
+    
+    # store best matched titles
+    for i in top_10_matches:
+        recommendations.append(indeces[i])
+        
+    return recommendations
+
+@app.route("/recommender_content_based", methods=['GET', 'POST'])
+def recommender_content_based():
+    if request.method == 'GET':
+        return render_template('recommender_content_based.html', options=recommender_system_df.index)
+    elif request.method == 'POST':
+        input_movie = request.get_json()
+        input_movie_title = input_movie['input_movie']
+        
+        output_message_type = "normal"
+        grid_info = [{
+                    'title': input_movie_title,
+                    'year': recommender_system_df.loc[input_movie_title]['Year'],
+                    'director': recommender_system_df_orig.loc[input_movie_title, 'Director'],
+                    'poster': recommender_system_df.loc[input_movie_title]['Poster'],
+                    'imdb': recommender_system_df.loc[input_movie_title]['imdbRating']
+                }]
+        
+        recommended_movies = recommender(input_movie_title)
+                
+        #print(recommended_movies)
+        if len(recommended_movies) == 0:
+            recommended_movies = "No result found"
+            output_message_type = "info"
+        else:            
+            for movie in recommended_movies:
+                grid_info.append({
+                    'title': movie,
+                    'year': recommender_system_df.loc[movie]['Year'],
+                    'director': recommender_system_df_orig.loc[movie, 'Director'],
+                    'poster': recommender_system_df.loc[movie]['Poster'],
+                    'imdb': recommender_system_df.loc[movie]['imdbRating']
+                })
+        
+        return render_template('info_grid.html', message={'type': output_message_type, 'text': recommended_movies, 'grid_info': grid_info})
+    
+# Falcon 9 Dashboard        
+sys.path.append('../../')
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+#print(BASE_DIR)
+db_path = os.path.join(BASE_DIR, "dashboards", "falcon9", "falcon9.db")
 
 # fetch data from SQlite database abd create a dataframe
-con = sqlite3.connect("./dashboards/falcon9/falcon9.db")
+con = sqlite3.connect(db_path)
 cur = con.cursor()
 
 sql_query = "SELECT * FROM `falcon9_tbl`"
@@ -50,10 +590,8 @@ colors = {
     'background': '#111111',
     'text': '#becdce',
     'light': '#e7e7e7',
-    'dark': '#515151',
     'lineColor': '#687879',
-    'gridColor': '#384d4f',
-    'br_gridColor': '#454545'
+    'gridColor': '#384d4f'
 }
 
 binary_class_palette = ['#DE3163', '#50C878']
@@ -89,17 +627,11 @@ def getOrbitTypeOptions():
 
     return orbitTypeOptions
 
-app = Flask(__name__)
-
-@app.context_processor
-def inject_now():
-    return {'now': datetime.datetime.utcnow()}
-
 # Falcon 9 Analysis app
-falcon_dash_app = Dash(external_stylesheets=[dbc.themes.SOLAR, dbc.icons.BOOTSTRAP],  server=app, routes_pathname_prefix='/falcon9_dashboard/')
-falcon_dash_app.title = "Falcon 9"
+falcon_9_dash_app = Dash(external_stylesheets=[dbc.themes.SOLAR, dbc.icons.BOOTSTRAP], server=app, url_base_pathname ="/falcon9_dashboard/")
+falcon_9_dash_app.title = "Falcon 9"
 
-@falcon_dash_app.callback(
+@falcon_9_dash_app.callback(
     Output(component_id="success_launchsite_pie_chart",
            component_property="figure"),
     Input(component_id="launch_site", component_property="value"),
@@ -167,7 +699,7 @@ def getSuccessPieChart(launch_site, flight_number, payload_mass, booster_version
     return fig
 
 
-@falcon_dash_app.callback(
+@falcon_9_dash_app.callback(
     Output('success_orbit_pie_chart', 'figure'),
     Input('orbit_type', 'value'),
     Input("launch_site", "value"),
@@ -236,7 +768,7 @@ def getSuccessOrbitPieChart(orbit_type, launch_site, flight_number, payload_mass
     return fig
 
 
-@falcon_dash_app.callback(
+@falcon_9_dash_app.callback(
     Output('success_boosterversion_pie_chart', 'figure'),
     Input(component_id="launch_site", component_property="value"),
     Input('flight_number', 'value'),
@@ -301,7 +833,7 @@ def getSuccessRateBoosterVersionPieChart(launch_site, flight_number, payload_mas
     return fig
 
 
-@falcon_dash_app.callback(
+@falcon_9_dash_app.callback(
     Output(component_id='launch_site_v_payload_mass',
            component_property='figure'),
     Input(component_id="launch_site", component_property="value"),
@@ -367,9 +899,7 @@ def getLaunchSiteVsPayloadMass(launch_site, flight_number, payload_mass, booster
 
 
 # YEARLY TREND CHARTS
-
-
-@falcon_dash_app.callback(
+@falcon_9_dash_app.callback(
     Output('success_yearly_trend_linechart', 'figure'),
     Input('year', 'value'),
     Input("launch_site", "value"),
@@ -426,7 +956,7 @@ def getYearlySuccessTrendLineChart(year, launch_site, flight_number, payload_mas
     return fig
 
 
-@falcon_dash_app.callback(
+@falcon_9_dash_app.callback(
     Output('yearly_launches_barchart', 'figure'),
     Input('year', 'value'),
     Input("launch_site", "value"),
@@ -496,7 +1026,7 @@ def getYearlyLaunchesBarchart(year, launch_site, flight_number, payload_mass,  b
     return fig
 
 
-@falcon_dash_app.callback(
+@falcon_9_dash_app.callback(
     Output('launch_site', 'value'),
     Output('flight_number', 'value'),
     Output('payload_mass', 'value'),
@@ -548,7 +1078,7 @@ def updateChartLayout(filtered_df, fig, chart_title, height):
 
     return fig
 
-falcon_dash_app.layout = html.Div(
+falcon_9_dash_app.layout = html.Div(
     [
         dbc.Container(
             dbc.Row(
@@ -796,14 +1326,72 @@ falcon_dash_app.layout = html.Div(
     }
 )
 
+@app.route('/falcon9_dashboard')
+def falcon9_dash():
+    return falcon_9_dash_app.index()
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+def os_path(filename):
+    return os.path.join(BASE_DIR, filename)
+
+colors = {
+    'background': '#111111',
+    'text': '#becdce',
+    'light': '#e7e7e7',
+    'dark': '#515151',
+    'lineColor': '#687879',
+    'gridColor': '#384d4f',
+    'br_gridColor': '#454545'
+}
+
+def updateChartLayout(filtered_df, fig, chart_title, height):
+    if len(filtered_df) == 0:
+        fig.update_layout(
+            plot_bgcolor='rgba(0, 0, 0, 0)',
+            paper_bgcolor='rgba(0, 0, 0, 0)',
+            font_color=colors['text'],
+            title_text=chart_title,
+            title_x=0.5,
+            autosize=False,
+            height=height,
+            xaxis={"visible": False},
+            yaxis={"visible": False},
+            annotations=[
+                {
+                    "text": "No data available for this graph.",
+                    "xref": "paper",
+                    "yref": "paper",
+                    "showarrow": False,
+                    "font": {
+                        "size": 14
+                    }
+                }
+            ]
+        )
+
+    else:
+        fig.update_layout(
+            plot_bgcolor='rgba(0, 0, 0, 0)',
+            paper_bgcolor='rgba(0, 0, 0, 0)',
+            font_color=colors['text'],
+            title_text=chart_title,
+            title_x=0.5,
+            autosize=False,
+            height=height
+        )
+
+    return fig
+
 # CO2 emission Analysis app
-co2_emission_dash_app = Dash(external_stylesheets=[dbc.themes.DARKLY, dbc.icons.BOOTSTRAP],  server=app, routes_pathname_prefix='/co2_emission_dashboard/')
+co2_emission_dash_app = Dash(external_stylesheets=[dbc.themes.DARKLY, dbc.icons.BOOTSTRAP], server=app, url_base_pathname ="/co2_emission_dashboard/")
+co2_emission_dash_app.title = "CO2 emission"
 
-co2_all_countries = pd.read_csv('ML_models/co2_emission_analysis/all_countries.csv')
-co2_geo_region_df = pd.read_csv('ML_models/co2_emission_analysis/geo_regions.csv')
-co2_economy_region_df = pd.read_csv('ML_models/co2_emission_analysis/economy_groups.csv')
+co2_all_countries = pd.read_csv(os_path('dashboards/co2_emission/data/all_countries.csv'))
+co2_geo_region_df = pd.read_csv(os_path('dashboards/co2_emission/data/geo_regions.csv'))
+co2_economy_region_df = pd.read_csv(os_path('dashboards/co2_emission/data/economy_groups.csv'))
 
-geo_json_r = open('ML_models/co2_emission_analysis/world-countries.json', 'r')
+geo_json_r = open(os_path('dashboards/co2_emission/data/world-countries.json'), 'r')
 geo_json = geo_json_r.read()
 
 @co2_emission_dash_app.callback(
@@ -1002,7 +1590,6 @@ def co2_economy_region(year_range):
     
     return fig
 
-co2_emission_dash_app.title = "CO₂ emission"
 co2_emission_dash_app.layout = html.Div(
     [
         dbc.Container(
@@ -1159,596 +1746,21 @@ co2_emission_dash_app.layout = html.Div(
     }
 )
 
-# Recommender system
-recommender_system_df = pd.read_csv('https://query.data.world/s/uikepcpffyo2nhig52xxeevdialfl7')
-recommender_system_df_orig = recommender_system_df[['Title', 'Year', 'Genre','Director','Actors','Plot', 'Poster', 'imdbRating']].set_index('Title')
-recommender_system_df = recommender_system_df[['Title', 'Year', 'Genre','Director','Actors','Plot', 'Poster', 'imdbRating']]
-
-def recomender_preprocessing(movie_df):
-    # data preprocessing for recomender system
-    # set lowercase and split on commas
-    movie_df['Actors'] = movie_df['Actors'].map(lambda x: x.lower().split(','))
-    movie_df['Genre'] = movie_df['Genre'].map(lambda x: x.lower().split(','))
-    movie_df['Director'] = movie_df['Director'].map(lambda x: x.lower().split(' '))
-
-    # join Actors and Director names as a single string
-    movie_df['Actors'] = movie_df.apply(lambda row: [x.replace(' ', '') for x in row['Actors']], axis=1)
-    movie_df['Director'] = movie_df.apply(lambda row: ''.join(row['Director']), axis=1)
-    # for index, row in movie_df.iterrows():
-    #     #print(index)
-    #     row['Actors'] = [x.replace(' ', '') for x in row['Actors']]
-    #     row['Director'] = ''.join(row['Director'])
-        
-    #     movie_df.loc[:, ('Actors', index)] = row['Actors']
-    #     movie_df.loc[:, ('Director', index)] = row['Director']
+@app.route('/co2_emission_dashboard')
+def co2_emission_dash():
+    return co2_emission_dash_app.index()
     
-    return movie_df
-
-recommender_system_df = recomender_preprocessing(recommender_system_df)
-
-# Extract keywords using Rake()
-
-def extract_keywords(movie_df):
-    movie_df['Key_words'] = "" # initialize the column for storing keywords
-    
-    for index, row in movie_df.iterrows():
-        plot = row['Plot']
-        
-        # initiate Rake
-        r = Rake()
-        
-        # extracting the words by passing the text
-        r.extract_keywords_from_text(plot)
-        
-        # preparing a dictionary with keywords and their scores
-        keyword_dict_score = r.get_word_degrees()
-        
-        # assign keywords to the new column
-        row['Key_words'] = list(keyword_dict_score.keys())
-       
-    # we do not need 'Plot' column anymore
-    movie_df.drop('Plot', axis=1, inplace=True)
-    
-    # set Title as index, then we can easily identify records rather than using numerical indices
-    movie_df.set_index('Title', inplace=True)
-    
-    return movie_df 
-
-recommender_system_df = extract_keywords(recommender_system_df)
-
-# create bag of words
-def create_bag_of_words(movie_df):
-    # initialize bag_of_words column
-    movie_df['bag_of_words'] = ""
-    
-    columns = movie_df.columns
-    # for index, row in movie_df.iterrows():
-    #     words = ''
-    #     for col in columns:
-    #         if col == 'Director':
-    #             #print(row[col])
-    #             words += row[col] + ' '
-    #         elif col == 'Actors':
-    #             words += ' '.join(row[col]) + ' '
-    #     movie_df.loc[:, ('bag_of_words', index)] = words
-    
-    movie_df['bag_of_words'] = movie_df.apply(
-        lambda row: bag_of_words_row(row['Actors'], row['Director']),
-        axis=1
-    )
-        
-    # now we only need the index and the bag_of_words column. So, we drop other columns
-    keep_cols = ['bag_of_words', 'Title', 'Year', 'Director', 'Poster', 'imdbRating']
-    movie_df.drop([col for col in columns if col not in keep_cols], axis=1, inplace=True)
-    
-    return movie_df
-
-def bag_of_words_row(actors, director):
-    words = ''
-    words += director + ' '
-    words += ' '.join(actors) + ' '
-    
-    return words
-
-recommender_system_df = create_bag_of_words(recommender_system_df)
-#print(recommender_system_df[['Director', 'bag_of_words']])
-#print(recommender_system_df)
-
-# apply Countervectorizer
-# this tokenize the words by counting the frequesncy. This is needed for calculate Cosine similarity
-# after that in the same function cosine_similarity finction is also applied and return cosine_sim matrix
-def count_vectorizer(df):
-    count_vector = CountVectorizer()
-    count_matrix = count_vector.fit_transform(df['bag_of_words'])
-    
-    cosine_sim = cosine_similarity(count_matrix, count_matrix)
-    
-    return cosine_sim
-
-cosine_sim = count_vectorizer(recommender_system_df)
-
-# implement recomender function
-indeces = pd.Series(recommender_system_df.index)
-
-def recommender(title, cosine_sim=cosine_sim):
-    recommendations = []
-    
-    # get relevant indeces
-    if len(indeces[indeces == title]) > 0:
-        search_idx = indeces[indeces == title].index[0]
-    else:
-        return []
-    
-    similarities = pd.Series(cosine_sim[search_idx]).sort_values(ascending=False)
-    
-    # get top 10 matches (indexes)
-    # use this indexes again to retrieve movie titles
-    top_10_matches = list(similarities.iloc[1:11].index)
-    #print(top_10_matches)
-    
-    # store best matched titles
-    for i in top_10_matches:
-        recommendations.append(indeces[i])
-        
-    return recommendations
-
-# load saved model files
-mood_class_strings = ['Sad', 'Happy']
-mood_detection_model = load_model(
-    'ML_models/mood_classifier')
-with open('ML_models/lr_banknotes_model.pkl', 'rb') as f:
-    banknote_model = pickle.load(f)
-
-with open('ML_models/Blackfriday_DT_model.pkl', 'rb') as f:
-    black_friday_dt_model = pickle.load(f)
-
-# this list is not essential. We can use model output index as the result. But for the consistancy of the program I'm using it here.
-sign_language_class_strings = [0, 1, 2, 3, 4, 5]
-sign_language_model = load_model(
-    'ML_models/sign_laguange.h5')
-
-#sign_language_resnet_model = load_model('ML_models/sign_language_resnet50')
-
-alpaca_mobilenetv2_model = load_model(
-    'ML_models/alpaca_mobile_netv2')
-
-co2_emission_lstm_model = load_model('ML_models/co2_emission_lstm')
-co2_emission_scalerfile = 'ML_models/co2_emission_lstm/scaler.sav'
-co2_emission_scaler = pickle.load(open(co2_emission_scalerfile, 'rb'))
-co2_orig_csv = pd.read_csv('ML_models/co2_emission_lstm/year_emission.csv')
-
-up_path = os.path.join(os.getcwd(), 'static', 'assets', 'temp')
-
-UPLOAD_FOLDER = up_path
-ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg'])
-
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-
-my_work = [
-    {
-        'header': 'End-to-end',
-        'application_url': 'black_friday',
-        'image': 'black_friday.png',
-        'title': 'Black Friday Purchase Prediction',
-        'description': "This project will understand the customer purchase behaviour (specifically, purchase amount) against various products of different categories. They have shared purchase summary of various customers for selected high volume products from last month.",
-        'github': 'https://github.com/tharangachaminda/Black_Friday_Purchase',
-        'icons': ['python', 'jupyterlab', 'flask', 'aws']
-    },
-
-    {
-        'header': 'End-to-end',
-        'application_url': 'banknotes_authentication',
-        'image': 'bank_notes.png',
-        'title': 'Banknotes Authentication',
-        'description': "Banknote analysis refers to the examination of paper currency to determine its legitimacy and identify potential counterfeits. In this python project, I am trying to build a <b>Classification Machine Learning models</b> to predict banknotes are genuine or forged.",
-        'github': 'https://github.com/tharangachaminda/banknotes_analysis',
-        'icons': ['python', 'jupyterlab', 'flask', 'aws']
-    },
-
-    {
-        'header': 'Analysis',
-        'application_url': 'falcon9_dashboard',
-        'image': 'falcon_9.png',
-        'title': 'SpaceX Falcon 9 1st Stage Landing Prediction',
-        'description': "SpaceX re-uses the Stage 1 boosters of Falcon 9 rockets. This project is an analysis for successful Stage 1 landing prediction. I have used SpaceX API and Webscraping for data collection, SQlite database for data storage.",
-        'github': 'https://github.com/tharangachaminda/Falcon9_First_stage_Landing',
-        'icons': ['python', 'jupyterlab', 'sql', 'sqlite', 'folium', 'plotly-dash', 'aws']
-    },
-
-    {
-        'header': 'Recommender System',
-        'image': 'netflix.png',
-        'title': 'Netflix Recommender System (Popularity Based)',
-        'description': "Netflix Recommender system is one of the best recommender systems in the world. In this project I've used <b>movies and rating</b> datasets and <b>NLTK toolkit</b> to build this popularity based recommender system.",
-        'github': 'https://github.com/tharangachaminda/popularity-based-recommendation-system',
-        'icons': ['Python', 'jupyterlab', 'nltk', 'flask', 'aws']
-    },
-
-    {
-        'header': 'Recommender System',
-        'application_url': 'recommender_content_based',
-        'image': 'netflix.png',
-        'title': 'Netflix Recommender System (Content Based)',
-        'description': "Netflix Recommender system is one of the best recommender systems in the world. In this project I've used <b>movies datasets</b> and <b>Cosine similarity</b> to build this content based recommender system.",
-        'github': 'https://github.com/tharangachaminda/content_based_recommender_system',
-        'icons': ['Python', 'jupyterlab', 'nltk', 'flask', 'aws']
-    },
-
-    {
-        'header': 'Analysis',
-        'image': 'bookstore.png',
-        'title': 'Bookstore Web scraping',
-        'description': "In this project I have built a mechanism to collect information about every book in the website, scraping through pagination. This project is associated with https://books.toscrape.com/ website which is specially design for training web scraping. ",
-        'github': 'https://github.com/tharangachaminda/bookstore_webscraping',
-        'icons': ['Python', 'jupyterlab', 'flask', 'aws']
-    },
-
-    {
-        'header': 'End-to-end (Deep Learning)',
-        'application_url': 'mood_detection',
-        'image': 'mood_classifier.png',
-        'title': 'Mood Classifier',
-        'description': "A mood classification is a type of machine learning task that is used to recognize human moods or emotions. In this project I have implemented a CNN model for recognizing smiling or not smiling humans using Tensorflow Keras Sequential API.",
-        'github': 'https://github.com/tharangachaminda/cnn_mood_classifier',
-        'icons': ['python', 'jupyterlab', 'tensorflow', 'flask', 'aws']
-    },
-
-    {
-        'header': 'End-to-end (Deep Learning - CNN)',
-        'application_url': 'sign_language_recognition',
-        'image': 'sign_language_digits.png',
-        'title': 'Sign Language Digits Recognition',
-        'description': "Sing language is a visual-gestural language used by deaf and hard-to-hearing individuals to convey imformation, thoughts and emotions. In this project I have implemented a CNN model for recognizing sign language digits 0 to 5 using Keras Functional API.",
-        'github': 'https://github.com/tharangachaminda/cnn_sign_language_detection',
-        'icons': ['python', 'jupyterlab', 'tensorflow', 'flask', 'aws']
-    },
-
-    {
-        'header': 'End-to-end (Deep Learning - Residual Network)',
-        'application_url': 'sign_language_recognition_resnet',
-        'image': 'sign_language_digits.png',
-        'title': 'Sign Language Digits Recognition',
-        'description': "Very deep neural networks suffer from a problem called vanishing/exploding gradients. Deep Residual Learning for Image Recognition resolves theis issue. A Residual Network, also known as ResNet, is a type of deep learning network architecture that introduces the concept of residual learning.",
-        'github': 'https://github.com/tharangachaminda/cnn_resnet',
-        'icons': ['python', 'jupyterlab', 'tensorflow', 'flask', 'aws']
-    },
-
-    {
-        'header': 'End-to-end (Deep Learning - MobileNetV2)',
-        'application_url': 'alpaca_mobilenetv2',
-        'image': 'alpaca_mobilenetv2.png',
-        'title': 'Binary Classification (Transfer Learning)',
-        'description': "Transfer Learning in Neural Network is a technique used in machine learning where knowledge gained from training one model (source domain) is transferred and applied to a different but related model (target domain). This involves taking a pre-trained model developed for one task and fine-tuned or using its learned features to solve another related task.",
-        'github': 'https://github.com/tharangachaminda/transfer_learning_with_mobilenet_v2',
-        'icons': ['python', 'jupyterlab', 'tensorflow', 'flask', 'aws']
-    },
-    
-    {
-        'header': 'End-to-end (Deep Learning - LSTM)',
-        'application_url': 'co2_emission_lstm',
-        'image': 'co2_emission.png',
-        'title': 'CO<sub>2</sub> emission prediction of Sri Lanka (LSTM)',
-        'description': "LSTM (Long Short-Term Memory) is a type of Recurrent Neural Network (RNN) architecture designed to efficiently capture and utilize long-term dependencies in <b>sequential data</b>. In this project, I will be developping an LSTM model to predict future CO<sub>2</sub> emission. CO<sub>2</sub> emission data is a Timeseries dataset, which fits for sequential model perfectly.",
-        'github': 'https://github.com/tharangachaminda/co2_emission_prediction',
-        'icons': ['python', 'jupyterlab', 'tensorflow', 'flask', 'aws']
-    },
-    
-    {
-        'header': 'Analysis',
-        'application_url': 'co2_emission_dashboard',
-        'image': 'co2_emission_analysis.png',
-        'title': 'CO<sub>2</sub> emission around the world.',
-        'description': "Countries vary significantly in their CO<sub>2</sub> emission levels due to differences in industrialization, energy consumption, transportation, and policies regarding environmental regulations. Some nations, particularly highly industrialized ones like China, the United States, India, and the European Union countries, tend to produce higher CO<sub>2</sub> emissions.",
-        'github': 'https://github.com/tharangachaminda/co2_emission_analysis',
-        'icons': ['python', 'jupyterlab', 'folium', 'plotly-dash', 'aws']
-    },
-
-]
-
-
-@app.route("/")
-def home():
-    return render_template('home.html', mywork=my_work)
-
-
-@app.route("/mood_detection")
-def mood_detection():
-    return render_template("mood_detection.html")
-
-
-@app.route("/predict_cnn/<task>", methods=["POST"])
-def predict_cnn(task):
-    if request.method == 'POST':
-        if 'image_file' not in request.files:
-            return render_template('model_result.html', message={'type': 'error', 'text': 'You have not uploaded an image.'})
-
-        model_obj = mood_detection_model
-        output_class_strings = mood_class_strings
-        inputImageWidth = 64
-        inputImageHeight = 64
-        preprocessing_method = None
-
-        if task == "sign_language":
-            model_obj = sign_language_model
-            output_class_strings = sign_language_class_strings
-        #elif task == 'sign_language_resnet':
-            #model_obj = sign_language_resnet_model
-            #output_class_strings = sign_language_class_strings
-        elif task == 'alpaca_mobilenetv2':
-            model_obj = alpaca_mobilenetv2_model
-            output_class_strings = ['Not an Alpaca', 'Alpaca']
-            inputImageWidth = 160
-            inputImageHeight = 160
-            preprocessing_method = tf.keras.applications.mobilenet_v2.preprocess_input
-
-        image = request.files['image_file']
-
-        if not allowed_file(image.filename):
-            return render_template('model_result.html', message={'type': 'error', 'text': 'Not a valid image file.'})
-
-        file_extension = image.filename.rsplit('.', 1)[1]
-        temp_filename = f'{int(time.time())}.{file_extension}'
-        image.save(os.path.join(up_path, temp_filename))
-        temp_file_path = os.path.join(up_path, temp_filename)
-        imageArray = imageToArray(
-            temp_file_path, inputImageWidth, inputImageHeight, preprocessing_method)
-
-        if imageArray is False:
-            return render_template('model_result.html', message={'type': 'error', 'text': 'Your image has some issues.'})
-
-        model_predict_prob = []
-        model_predict_prob = model_obj.predict(imageArray)
-        print(model_predict_prob)
-
-        if task == 'sign_language' or task == 'sign_language_resnet':
-            model_predict_int = np.argmax(model_predict_prob)
-        else:
-            model_predict_int = int(model_predict_prob > 0.5)
-
-        print(model_predict_prob, model_predict_int)
-        if os.path.exists(temp_file_path):
-            os.remove(temp_file_path)
-        else:
-            print('file path does not exist')
-
-        model_final_output = output_class_strings[model_predict_int]
-
-        return render_template('model_result.html', message={'type': 'normal', 'text': f'Model predicts as <b>"{model_final_output}"</b> with probability {model_predict_prob}'})
-
-
-@app.route('/sign_language_recognition')
-def sign_language_recognition():
-    model_summary = sign_language_model.to_json()
-    # print(model_summary)
-    return render_template("sign_language_detection.html", sign_model={"model_json": model_summary})
-
-
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-
-def imageToArray(imageName, inputWidth=64, inputHeight=64, preprocessing_method=None):
-    # Load the image and resize it to the desired dimensions
-    # image_path = f'images/{imageName}'
-    image_path = imageName
-    width, height = inputWidth, inputHeight
-
-    image = Image.open(image_path)
-
-    if image.width < inputWidth or image.height < inputHeight:
-        return False
-
-    image = image.resize((width, height))
-    print(image.width)
-    # Convert the image to a NumPy array and normalize the pixel values (if necessary)
-    image_array = np.array(image)
-    if preprocessing_method is None:
-        image_array = image_array / 255.  # Normalize the pixel values between 0 and 1
-
-    # plt.imshow(image_array)
-    # plt.show()
-
-    # print(image_array.shape)
-    # Reshape the image array to match the input shape of your model
-    # Assumes the input shape is (width, height, 3)
-    try:
-        image_array = image_array.reshape(1, width, height, 3)
-        if preprocessing_method is not None:
-            image_array = preprocessing_method(image_array)
-    except:
-        if os.path.exists(image_path):
-            os.remove(image_path)
-        return False
-
-    return image_array
-
-
-@app.route('/black_friday')
-def black_friday():
-    return render_template('black_friday.html')
-
-
-@app.route('/black_friday_prediction', methods=['POST'])
-def black_friday_prediction():
-    if request.method == 'POST':
-        form_data = request.get_json()
-
-        city_category_options = np.array([1, 2, 3])
-        city_category_one_hot = city_category_options == int(
-            form_data['city_category'])
-        city_category_one_hot = np.array(
-            list(map(int, city_category_one_hot))).astype('float')
-
-        # prepare data array
-        input_data = np.array([
-            form_data['gender'],
-            form_data['age'],
-            form_data['occupation'],
-            form_data['stay_in_current_city'],
-            form_data['marital_status'],
-            form_data['product_main_category'],
-            form_data['product_category_1'],
-            form_data['product_category_2'],
-        ]).astype('float')
-
-        input_data_ = np.append(input_data, city_category_one_hot)
-        input_data_ = input_data_.reshape(-1, 1)
-
-        # scaling data using standardScaler
-        std_scaler = StandardScaler()
-        input_data_scalled = std_scaler.fit_transform(input_data_)
-
-        # predict now
-        input_data_final = input_data_scalled.reshape(1, -1)
-        print(input_data_final)
-        pred = black_friday_dt_model.predict(input_data_final)
-
-        return render_template('model_result.html', message={"type": 'normal', 'text': f"Predicted purchase amount for above customer: <b>${str(round(pred[0], 2))}</b>"})
-
-
-@app.route('/banknotes_authentication')
-def banknotes_authentication():
-    return render_template('banknotes_authentication.html')
-
-
-@app.route('/banknotes_auth', methods=['POST'])
-def banknotes_auth():
-    if request.method == 'POST':
-        form_data_json = request.get_json()
-
-        try:
-            model_input = np.array([
-                form_data_json['variance'],
-                form_data_json['skewness'],
-                form_data_json['curtosis'],
-                form_data_json['entropy']]).astype('float')
-
-            model_input = model_input.reshape(1, - 1)
-            predict = banknote_model.predict(model_input)
-        except:
-            return render_template('model_result.html', message={'type': 'error', 'text': f"Something went wrong!"})
-
-        output_str = ["invalid", "valid"]
-
-        return render_template('model_result.html', message={'type': 'normal', 'text': f"Model says it's a <b>{output_str[predict[0]]}</b> banknote."})
-
-
-@app.route('/sign_language_recognition_resnet')
-def sign_language_recognition_resnet():
-    return render_template('resnet.html')
-
-
-@app.route('/alpaca_mobilenetv2')
-def alpaca_mobilenetv2():
-    return render_template('alpaca_mobilenetv2.html')
-
-@app.route('/recommender_content_based', methods=['GET', 'POST'])
-def recommender_content_based():
-    if request.method == 'GET':
-        return render_template('recommender_content_based.html', options=recommender_system_df.index)
-    elif request.method == 'POST':
-        input_movie = request.get_json()
-        input_movie_title = input_movie['input_movie']
-        
-        output_message_type = "normal"
-        grid_info = [{
-                    'title': input_movie_title,
-                    'year': recommender_system_df.loc[input_movie_title]['Year'],
-                    'director': recommender_system_df_orig.loc[input_movie_title, 'Director'],
-                    'poster': recommender_system_df.loc[input_movie_title]['Poster'],
-                    'imdb': recommender_system_df.loc[input_movie_title]['imdbRating']
-                }]
-        
-        recommended_movies = recommender(input_movie_title)
-                
-        #print(recommended_movies)
-        if len(recommended_movies) == 0:
-            recommended_movies = "No result found"
-            output_message_type = "info"
-        else:            
-            for movie in recommended_movies:
-                grid_info.append({
-                    'title': movie,
-                    'year': recommender_system_df.loc[movie]['Year'],
-                    'director': recommender_system_df_orig.loc[movie, 'Director'],
-                    'poster': recommender_system_df.loc[movie]['Poster'],
-                    'imdb': recommender_system_df.loc[movie]['imdbRating']
-                })
-        
-        return render_template('info_grid.html', message={'type': output_message_type, 'text': recommended_movies, 'grid_info': grid_info})
-
-@app.route('/co2_emission_lstm', methods=['GET', 'POST'])
-def co2_emission_lstm():
-    if request.method == 'GET':
-        return render_template('co2_emission_lstm.html', params={'last_year': int(co2_orig_csv['year'].iloc[-1])})
-    elif request.method == 'POST':
-        request_json = request.get_json()
-        
-        window_size = 2
-        
-        # validation set
-        val_data = np.array([[0.42428668],
-                            [0.47168195],
-                            [0.49305629],
-                            [0.5446335 ],
-                            [0.47121728],
-                            [0.5265118 ],
-                            [0.49026836],
-                            [0.46610604],
-                            [0.50234947],
-                            [0.61154451],
-                            [0.67799085],
-                            [0.56786648],
-                            [0.71284033],
-                            [0.8410864 ],
-                            [0.91403795],
-                            [0.98048429],
-                            [0.90288613],
-                            [1.        ]])
-        
-        x_input = val_data[-(window_size):].reshape(1, -1)
-        
-        temp_input = list(x_input)
-        temp_input = temp_input[0].tolist() # this is the inputs for starting prediction
-        
-        lst_output=[]
-        n_steps=window_size
-        number_of_years_to_predict = int(request_json['to_year']) - 2019
-        i=0
-        while(i<number_of_years_to_predict):
-            
-            if(len(temp_input)>n_steps):
-                #print(temp_input)
-                x_input=np.array(temp_input[1:])
-                #print("{} Year input {}".format(i,x_input))
-                x_input=x_input.reshape(1,-1)
-                x_input = x_input.reshape((1, n_steps, 1))
-                #print(x_input)
-                yhat = co2_emission_lstm_model.predict(x_input, verbose=0)
-                #print("{} Year output {}".format(i,yhat))
-                temp_input.extend(yhat[0].tolist())
-                temp_input=temp_input[1:]
-                #print(temp_input)
-                lst_output.extend(yhat.tolist())
-                i=i+1
-            else:
-                x_input = x_input.reshape((1, n_steps,1))
-                yhat = co2_emission_lstm_model.predict(x_input, verbose=0)
-                #print(yhat[0])
-                temp_input.extend(yhat[0].tolist())
-                #print(len(temp_input))
-                lst_output.extend(yhat.tolist())
-                i=i+1
-        
-        final_output = co2_emission_scaler.inverse_transform(lst_output).flatten()
-        x_labels = co2_orig_csv['year'].tolist() + np.arange(int(co2_orig_csv['year'].iloc[-1]) + 1, int(request_json['to_year']) + 1).tolist()
-        
-        chart_data_orig = list(co2_orig_csv['value']) + [0] * len(final_output)
-        chart_data_predicted = [0] * (len(co2_orig_csv['value']) - 1) + list([co2_orig_csv['value'].iloc[-1]]) + list(final_output)
-        
-        response_json = {"x_labels": x_labels, "orig": chart_data_orig, "predicted": chart_data_predicted}
-        return jsonify(response_json)
+# application = DispatcherMiddleware(app, 
+#     {
+#         #"/falcon9_dashboard": falcon_9_dash_app.server,
+#         #"/co2_emission_dashboard": co2_emission_dashboard.server,
+#         "/machine_leanrning_apps": machine_leanrning_apps,
+#         "/deep_learning_apps": deep_learning_apps,
+#         "/recommender_content_based": recommender_system,
+#     }
+# )
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=80)
     #app.run(debug=True)
+    #run_simple('localhost', 5000, application)
