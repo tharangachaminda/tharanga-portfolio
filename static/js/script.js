@@ -79,7 +79,7 @@ $(document).ready(function(){
         var entropy  = $('#entropy').val() 
 
         if(variance == "" || skewness == "" || curtosis == "" || entropy == "") {
-            $('#error_mgs').html('Please enter every vallue.')
+            $('#error_mgs').html('All fields are required.')
         } else {
             show_hide_spinner(true);
 

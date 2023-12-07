@@ -13,5 +13,5 @@ scikit-learn==1.2.2
 SQLAlchemy==2.0.19
 nltk==3.8.1
 rake-nltk==1.0.6
-tensorflow-cpu==2.14.0
+#tensorflow-cpu==2.14.0
 gunicorn==21.2.0
