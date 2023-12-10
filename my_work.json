@@ -64,7 +64,7 @@
         "title": "Mood Classifier",
         "description": "A mood classification is a type of machine learning task that is used to recognize human moods or emotions. In this project I have implemented a CNN model for recognizing smiling or not smiling humans using Tensorflow Keras Sequential API.",
         "github": "https://github.com/tharangachaminda/cnn_mood_classifier",
-        "icons": ["python", "jupyterlab", "tensorflow", "flask", "aws", "aws_s3", "docker"]
+        "icons": ["python", "jupyterlab", "tensorflow", "flask", "aws", "docker"]
     },
 
     {
@@ -74,7 +74,7 @@
         "title": "Sign Language Digits Recognition",
         "description": "Sing language is a visual-gestural language used by deaf and hard-to-hearing individuals to convey imformation, thoughts and emotions. In this project I have implemented a CNN model for recognizing sign language digits 0 to 5 using Keras Functional API.",
         "github": "https://github.com/tharangachaminda/cnn_sign_language_detection",
-        "icons": ["python", "jupyterlab", "tensorflow", "flask", "aws", "aws_s3", "docker"]
+        "icons": ["python", "jupyterlab", "tensorflow", "flask", "aws", "docker"]
     },
 
     {
@@ -94,7 +94,7 @@
         "title": "Binary Classification (Transfer Learning)",
         "description": "Transfer Learning in Neural Network is a technique used in machine learning where knowledge gained from training one model (source domain) is transferred and applied to a different but related model (target domain). This involves taking a pre-trained model developed for one task and fine-tuned or using its learned features to solve another related task.",
         "github": "https://github.com/tharangachaminda/transfer_learning_with_mobilenet_v2",
-        "icons": ["python", "jupyterlab", "tensorflow", "flask", "aws", "aws_s3", "docker"]
+        "icons": ["python", "jupyterlab", "tensorflow", "flask", "aws", "docker"]
     },
     
     {
@@ -104,7 +104,7 @@
         "title": "CO<sub>2</sub> emission prediction of Sri Lanka (LSTM)",
         "description": "LSTM (Long Short-Term Memory) is a type of Recurrent Neural Network (RNN) architecture designed to efficiently capture and utilize long-term dependencies in <b>sequential data</b>. In this project, I will be developping an LSTM model to predict future CO<sub>2</sub> emission. CO<sub>2</sub> emission data is a Timeseries dataset, which fits for sequential model perfectly.",
         "github": "https://github.com/tharangachaminda/co2_emission_prediction",
-        "icons": ["python", "jupyterlab", "tensorflow", "flask", "aws", "aws_s3", "docker"]
+        "icons": ["python", "jupyterlab", "tensorflow", "flask", "aws", "docker"]
     },
     
     {
