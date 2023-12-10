@@ -16,7 +16,6 @@ import requests
 #import tensorflow as tf
 #from tensorflow.keras.models import load_model
 
-
 import pickle
 import numpy as np
 import time
@@ -31,8 +30,8 @@ from sklearn.feature_extraction.text import CountVectorizer # Document Term Freq
 import rake_nltk
 from rake_nltk import Rake
 import nltk
-nltk.download('stopwords')
-nltk.download('punkt')
+#nltk.download('stopwords')
+#nltk.download('punkt')
 
 #from ml_apps import app as machine_leanrning_apps
 #from dl_apps import app as deep_learning_apps
@@ -97,7 +96,7 @@ def black_friday_prediction():
 
         # predict now
         input_data_final = input_data_scalled.reshape(1, -1)
-        print(input_data_final)
+        # print(input_data_final)
         pred = black_friday_dt_model.predict(input_data_final)
 
         return render_template('model_result.html', message={"type": 'normal', 'text': f"Predicted purchase amount for above customer: <b>${str(round(pred[0], 2))}</b>"})
@@ -132,7 +131,7 @@ def banknotes_auth():
 ##### Deep learning apps #####
 
 # Tf model serving with S3 bucket
-def get_tf_serving_rest_url(model_name, host='34.215.236.233', port='8501', verb='predict'):
+def get_tf_serving_rest_url(model_name, host='localhost', port='8501', verb='predict'):
      url = "http://{0}:{1}/v1/models/{2}:predict".format(host,port,model_name)
      
      return url
@@ -144,22 +143,23 @@ def tr_serving_rest_request(data, url):
 
 # load saved model files
 mood_class_strings = ['Sad', 'Happy']
-#mood_detection_model = load_model('ML_models/mood_classifier')
+#mood_detection_model = load_model('ML_models/mood_classifier_1701759497220')
 mood_detection_model = "mood_classifier_1701759497220"
 
 
 # this list is not essential. We can use model output index as the result. But for the consistancy of the program I'm using it here.
 sign_language_class_strings = [0, 1, 2, 3, 4, 5]
 #sign_language_model = load_model('ML_models/sign_laguange.h5')
+#sign_language_model = load_model('ML_models/cnn_sign_language_detection_1701800022195')
 sign_language_model = "cnn_sign_language_detection_1701800022195"
 
 #sign_language_resnet_model = load_model('ML_models/sign_language_resnet50')
-sign_language_resnet_model = "resnet_50_1701760206020"
+sign_language_resnet_model = "resnet_50"
 
-#alpaca_mobilenetv2_model = load_model('ML_models/alpaca_mobile_netv2')
+#alpaca_mobilenetv2_model = load_model('ML_models/alpaca_mobile_netv2_1701759341886')
 alpaca_mobilenetv2_model = "alpaca_mobile_netv2_1701759341886"
 
-#co2_emission_lstm_model = load_model('ML_models/co2_emission_lstm')
+#co2_emission_lstm_model = load_model('ML_models/co2_emission_lstm_1701759497110')
 co2_emission_lstm_model = "co2_emission_lstm_1701759497110"
 
 co2_emission_scalerfile = 'ML_models/co2_emission_data/scaler.sav'
@@ -217,7 +217,6 @@ def imageToArray(imageName, inputWidth=64, inputHeight=64, preprocessing_method=
 def mood_detection():
     return render_template("mood_detection.html")
 
-
 @app.route("/predict_cnn/<task>", methods=["POST"])
 def predict_cnn(task):
     if request.method == 'POST':
@@ -233,9 +232,9 @@ def predict_cnn(task):
         if task == "sign_language":
             model_obj = sign_language_model
             output_class_strings = sign_language_class_strings
-        #elif task == 'sign_language_resnet':
-            #model_obj = sign_language_resnet_model
-            #output_class_strings = sign_language_class_strings
+        elif task == 'sign_language_resnet':
+            model_obj = sign_language_resnet_model
+            output_class_strings = sign_language_class_strings
         elif task == 'alpaca_mobilenetv2':
             model_obj = alpaca_mobilenetv2_model
             output_class_strings = ['Not an Alpaca', 'Alpaca']
@@ -271,14 +270,14 @@ def predict_cnn(task):
             return render_template('model_result.html', message={'type': 'error', 'text': "Something went wrong!"})
         
         model_predict_prob = tr_serving_response_json['predictions']
-        print(model_predict_prob)
+        #print(model_predict_prob)
 
         if task == 'sign_language' or task == 'sign_language_resnet':
             model_predict_int = np.argmax(model_predict_prob)
         else:
             model_predict_int = int(model_predict_prob[0][0] > 0.5)
 
-        print(model_predict_prob[0][0], model_predict_int)
+        #print(model_predict_prob[0][0], model_predict_int)
         if os.path.exists(temp_file_path):
             os.remove(temp_file_path)
         else:
@@ -304,8 +303,6 @@ def sign_language_recognition_resnet():
 @app.route('/alpaca_mobilenetv2')
 def alpaca_mobilenetv2():
     return render_template('alpaca_mobilenetv2.html')
-
-
 
 @app.route('/co2_emission_lstm', methods=['GET', 'POST'])
 def co2_emission_lstm():
@@ -398,7 +395,7 @@ def co2_emission_lstm():
         return jsonify(response_json)
 
 # Recommender system
-recommender_system_df = pd.read_csv('https://query.data.world/s/uikepcpffyo2nhig52xxeevdialfl7')
+recommender_system_df = pd.read_csv('ML_models/movies.csv') # https://query.data.world/s/uikepcpffyo2nhig52xxeevdialfl7
 recommender_system_df_orig = recommender_system_df[['Title', 'Year', 'Genre','Director','Actors','Plot', 'Poster', 'imdbRating']].set_index('Title')
 recommender_system_df = recommender_system_df[['Title', 'Year', 'Genre','Director','Actors','Plot', 'Poster', 'imdbRating']]
 
