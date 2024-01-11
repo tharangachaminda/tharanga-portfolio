@@ -40,7 +40,20 @@ import nltk
 #from dashboards.co2_emission.co2_dash import app as co2_emission_dashboard
 
 app = Flask(__name__)
+
+# ML app routes
+with open('ML_models/lr_banknotes_model.pkl', 'rb') as f:
+    banknote_model = pickle.load(f)
+
+with open('ML_models/Blackfriday_DT_model.pkl', 'rb') as f:
+    black_friday_dt_model = pickle.load(f)
     
+with open('ML_models/heart_SVC_model.pkl', 'rb') as f:
+    heart_attack_model = pickle.load(f)
+    
+with open('ML_models/diabetes_DT_model.pkl', 'rb') as f:
+    diabetes_model = pickle.load(f)
+        
 my_work_f = open("my_work.json")
 my_work = json.load(my_work_f)
 
@@ -51,13 +64,6 @@ def inject_now():
 @app.route("/")
 def home():
     return render_template('home.html', mywork=my_work)
-
-# ML app routes
-with open('ML_models/lr_banknotes_model.pkl', 'rb') as f:
-    banknote_model = pickle.load(f)
-
-with open('ML_models/Blackfriday_DT_model.pkl', 'rb') as f:
-    black_friday_dt_model = pickle.load(f)
     
 @app.route("/black_friday")
 def black_friday():
@@ -128,6 +134,98 @@ def banknotes_auth():
 
         return render_template('model_result.html', message={'type': 'normal', 'text': f"Model says it's a <b>{output_str[predict[0]]}</b> banknote."})
 
+
+@app.route('/heart_attack_prediction', methods=['GET', 'POST'])
+def heat_attak_prediction():
+    if request.method == 'GET':
+        return render_template('heart_attack.html')
+    elif request.method == 'POST':
+        form_data_json = request.get_json()
+        
+        dataset_ = {
+            'age': [float(form_data_json['age'])], 
+            'trtbps': [float(form_data_json['trtbps'])], 
+            'chol': [float(form_data_json['chol'])], 
+            'thalachh': [float(form_data_json['thalachh'])], 
+            'oldpeak': [float(form_data_json['oldpeak'])],
+            'sex_0':[0],'sex_1': [0], 
+            'cp_0': [0], 'cp_1': [0], 'cp_2': [0], 'cp_3': [0], 
+            'fbs_0': 0, 'fbs_1': 0, 
+            'restecg_0': [0], 'restecg_1': [0], 'restecg_2': [0], 
+            'exng_0': [0], 'exng_1': [0], 
+            'slp_0': [0], 'slp_1': [0], 'slp_2': [0],
+            'caa_0': [0], 'caa_1': [0], 'caa_2': [0], 'caa_3': [0], 'caa_4': [0], 
+            'thall_0': [0], 'thall_1': [0], 'thall_2': [0], 'thall_3': [0]}
+        
+        dataset_['sex_' + form_data_json['sex']] = [1]
+        dataset_['cp_' + form_data_json['cp']] = [1]
+        dataset_['fbs_' + form_data_json['fbs']] = [1]
+        dataset_['restecg_' + form_data_json['restecg']] = [1]
+        dataset_['exng_' + form_data_json['exang']] = [1]
+        dataset_['slp_' + form_data_json['slp']] = [1]
+        dataset_['caa_' + form_data_json['caa']] = [1]
+        dataset_['thall_' + form_data_json['thall']] = [1]
+        
+        data_frame = pd.DataFrame(dataset_)
+        #print(data_frame)
+        predict = heart_attack_model.predict(data_frame)
+        
+        output_str = ["💚 You do not have a risk of a heart attack", "❤️ You have a risk of a heart attack"]
+        
+        print(output_str[predict[0]])        
+        return render_template('model_result.html', message={'type': 'normal', 'text': f"{output_str[predict[0]]}"})
+
+@app.route('/diabetes_risk_prediction', methods=['GET', 'POST'])
+def diabetes_risk_prediction():
+    if request.method == 'GET':
+        return render_template('diabetes_risk.html')
+    elif request.method == 'POST':
+        form_data_json = request.get_json()
+        
+        dataset_ = {
+            "Age": [float(form_data_json['age'])],
+            "Gender_Female": [0], "Gender_Male": [0],
+            "Polyuria_No": [0], "Polyuria_Yes": [0],
+            "Polydipsia_No": [0], "Polydipsia_Yes": [0],
+            "sudden weight loss_No": [0], "sudden weight loss_Yes": [0],
+            "weakness_No": [0], "weakness_Yes": [0],
+            "Polyphagia_No": [0], "Polyphagia_Yes": [0],
+            "Genital thrush_No": [0], "Genital thrush_Yes": [0],
+            "visual blurring_No": [0], "visual blurring_Yes": [0],
+            "Itching_No": [0], "Itching_Yes": [0],
+            "Irritability_No": [0], "Irritability_Yes": [0],
+            "delayed healing_No": [0], "delayed healing_Yes": [0],
+            "partial paresis_No": [0], "partial paresis_Yes": [0],
+            "muscle stiffness_No": [0], "muscle stiffness_Yes": [0],
+            "Alopecia_No": [0], "Alopecia_Yes": [0],
+            "Obesity_No": [0], "Obesity_Yes": [0]
+        }
+        
+        dataset_["Gender_" + form_data_json['gender']] = [1]
+        dataset_["Polyuria_" + form_data_json['plyuria']] = [1]
+        dataset_["Polydipsia_" + form_data_json['polydipsia']] = [1]
+        dataset_["sudden weight loss_" + form_data_json['sudden_weight_loss']] = [1]
+        dataset_["weakness_" + form_data_json['weakness']] = [1]
+        dataset_["Polyphagia_" + form_data_json['polyphagia']] = [1]
+        dataset_["Genital thrush_" + form_data_json['genital_thrush']] = [1]
+        dataset_["visual blurring_" + form_data_json['visual_blurring']] = [1]
+        dataset_["Itching_" + form_data_json['itching']] = [1]
+        dataset_["Irritability_" + form_data_json['irritability']] = [1]
+        dataset_["delayed healing_" + form_data_json['delayed_healing']] = [1]
+        dataset_["partial paresis_" + form_data_json['partial_paresis']] = [1]
+        dataset_["muscle stiffness_" + form_data_json['muscle_stiffness']] = [1]
+        dataset_["Alopecia_" + form_data_json['alopecia']] = [1]
+        dataset_["Obesity_" + form_data_json['obesity']] = [1]
+        
+        df = pd.DataFrame(dataset_)
+        
+        predict = diabetes_model.predict(df)
+        
+        output_str = ["💚 You do not have a risk of a diabetes", "❤️ You have a risk of a diabetes"]
+        
+        print(output_str[predict[0]])        
+        return render_template('model_result.html', message={'type': 'normal', 'text': f"{output_str[predict[0]]}"})        
+
 ##### Deep learning apps #####
 
 # Tf model serving with S3 bucket
@@ -145,7 +243,6 @@ def tr_serving_rest_request(data, url):
 mood_class_strings = ['Sad', 'Happy']
 #mood_detection_model = load_model('ML_models/mood_classifier_1701759497220')
 mood_detection_model = "mood_classifier_1701759497220"
-
 
 # this list is not essential. We can use model output index as the result. But for the consistancy of the program I'm using it here.
 sign_language_class_strings = [0, 1, 2, 3, 4, 5]
@@ -263,7 +360,7 @@ def predict_cnn(task):
         #model_predict_prob = model_obj.predict(imageArray)
         tr_serving_response = tr_serving_rest_request(imageArray.tolist(), tf_serving_url)
         tr_serving_response_json = tr_serving_response.json()
-        print(tr_serving_response_json)
+        #print(tr_serving_response_json)
         
         # error handling
         if 'error' in tr_serving_response_json:
@@ -1746,7 +1843,10 @@ co2_emission_dash_app.layout = html.Div(
 @app.route('/co2_emission_dashboard')
 def co2_emission_dash():
     return co2_emission_dash_app.index()
-    
+
+@app.route('/medbot')
+def medbot():
+    return render_template('medbot.html') 
 # application = DispatcherMiddleware(app, 
 #     {
 #         #"/falcon9_dashboard": falcon_9_dash_app.server,

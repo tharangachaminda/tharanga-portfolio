@@ -1,0 +1,200 @@
+{% extends 'base.html' %}
+
+{% block container %}
+
+<div class="container top-pad">    
+    <div class="row">
+        <div class="col">
+            <h2>Heart attack prediction</h2>
+            <p>Fill the form and predict whether you have a risk of hear attack.</p>
+            <p class="alert alert-info"><i class="bi bi-info-circle-fill"></i> We can improve this model by changing the model architecture, and adding more training data. At this level I wanted to showcase my work towards implementation and deployment of Machine Learning model.</p>
+            <form class="no-submit-form">
+                <div class="form-group mb-3">
+                    <div class="row">
+                        <div class="col">
+                            <label for="age">Age</label>
+                            <select class="form-select" id="age">
+                                {% for i in range(29, 80): %}
+                                <option value="{{i}}">{{i}}</option>
+                                {% endfor %}
+                            </select>                            
+                        </div>
+                        <div class="col">
+                            <div class="form-group mb-3">
+                                <label>Gender</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" value="1" name="gender" id="gender_male" checked>
+                                    <label class="form-check-label" for="gender_male">
+                                        Male
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" value="0" name="gender" id="gender_female">
+                                    <label class="form-check-label" for="gender_female">
+                                        Female
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="form-group">
+                                <label>Chest Pain type</label>
+                                <select class="form-select" id="chest_pain_type">
+                                    <option value="0">Typical angina</option>
+                                    <option value="1">Atypical angina</option>
+                                    <option value="2">Non-anginal pain</option>
+                                    <option value="3">Asymptomatic</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>                    
+                </div>
+
+                <div class="row">
+                    <div class="col">
+                        <div class="form-group mb-3">
+                            <label for="resting_blood_pressure">Resting blood pressure (in mm Hg)</label>
+                            <input type="number" class="form-control" id="resting_blood_pressure" step="0.01" />
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="form-group mb-3">
+                            <label for="cholesterol_level">Cholesterol in mg/dl</label>
+                            <input type="number" class="form-control" id="cholesterol_level" step="0.01" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col">
+                        <div class="form-group mb-3">
+                            <label for="fbs">Is fasting blood sugar > 120 mg/dl?</label>                            
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" value="1" name="fbs" id="fbs_yes">
+                                <label class="form-check-label" for="fbs_yes">
+                                    Yes
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" value="0" name="fbs" id="fbs_no" checked>
+                                <label class="form-check-label" for="fbs_no">
+                                    No
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="form-group">
+                            <label>Resting electrocardiographic results</label>
+                            <select class="form-select" id="resting_electrocardio">
+                                <option value="0">Normal</option>
+                                <option value="1">Having ST-T wave abnormality</option>
+                                <option value="2">Showing probable or definite left ventricular hypertrophy by Estes' criteria</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col">
+                        <div class="form-group mb-3">
+                            <label for="city_category">Maximum heart rate achieved</label>
+                            <input type="number" class="form-control" id="max_heart_rate" step="0.01" />
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="form-group mb-3">
+                            <label for="stay_in_city">Exercise induced angina?</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" value="1" name="exang" id="exang_yes" checked>
+                                <label class="form-check-label" for="exang_yes">
+                                    Yes
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" value="0" name="exang" id="exang_no">
+                                <label class="form-check-label" for="exang_no">
+                                    No
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="form-group mb-3">
+                            <label for="oldpeaky">Previous peak</label>
+                            <input type="number" class="form-control" id="oldpeak" step="0.01" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row form-group mb-3">
+                    <div class="col">
+                        <label class="mb-2" for="slp">ST Slope</label>
+                        <select class="form-select" id="slp">
+                            <option value="0">Upsloping</option>
+                            <option value="1">Flat</option>
+                            <option value="2">Downsloping</option>
+                        </select>
+                    </div>
+
+                    <div class="col">
+                        <label class="mb-2" for="num_major_vessels">Number of major vessels</label>
+                        <select class="form-select" id="num_major_vessels">
+                            <option value="0">0</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                        </select>
+                    </div>
+
+                    <div class="col">
+                        <label class="mb-2" for="thall">Thallium stress test</label>
+                        <select class="form-select" id="thall">
+                            <option value="0">Null</option>
+                            <option value="1">Fixed defect</option>
+                            <option value="2">Normal</option>
+                            <option value="3">Reversible defect</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group mb-3">
+                    <button class="btn btn-dark predict-btn" id="predict_heart_attack_btn">Predict</button>
+                </div>
+
+                <div id="error_mgs" class="text-danger"></div> 
+                <div id="result">{% block model_result %}{% endblock %}</div>
+
+                <div class="mb-2">
+                    {% include "spinner_block.html" %}
+                </div>
+            </form>
+        </div>
+        <div class="col">
+            <h2>Development summary</h2>
+            <h4>High-level architecture of the application</h4>
+            <img src="{{ url_for("static", filename="assets/images/archi_ml.png") }}" />
+            <h4>Model summary</h4>
+            <div class="mb-2">
+                <span class="badge bg-primary p-2">Model accuracy: 86%</span>
+            </div>
+            <p>In this project I have implemented  following models.</p>
+            <ol>
+                <li>Logistic Regression</li>
+                <li>Random Forest Classifier</li>
+                <li>Support Vector Classifier (SVC) </li>
+                <li>Decision Tree Classifier</li>
+            </ol>
+            <p>I used GridSearchCV to search for optimal hyperparameters. Best performance model was the <b>Support Vector Classifier</b>.</p>
+            <pre>
+Best params: {'svc__C': 0.5, 'svc__gamma': 'scale', 'svc__kernel': 'sigmoid'}
+Best score:  0.8618421052631579
+Best estimator:  
+SVC('svc__C'=0.5, 'svc__gamma'='scale', 'svc__kernel'='sigmoid')
+            </pre>
+
+        </div>
+    </div>    
+</div>
+
+{% endblock %}

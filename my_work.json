@@ -115,6 +115,36 @@
         "description": "Countries vary significantly in their CO<sub>2</sub> emission levels due to differences in industrialization, energy consumption, transportation, and policies regarding environmental regulations. Some nations, particularly highly industrialized ones like China, the United States, India, and the European Union countries, tend to produce higher CO<sub>2</sub> emissions.",
         "github": "https://github.com/tharangachaminda/co2_emission_analysis",
         "icons": ["python", "jupyterlab", "folium", "plotly-dash", "aws"]
+    },
+    
+    {
+        "header": "End-to-end",
+        "application_url": "heart_attack_prediction",
+        "image": "heart_attack.png",
+        "title": "Heart attack prediction",
+        "description": "A heart attack, medically known as a myocardial infarction, is a serious and potentially life-threatening event that occurs when the blood flow to a part of the heart is blocked. This blockage is often the result of a clot obstructing the coronary arteries, which supply oxygen-rich blood to the heart muscle. When the heart muscle doesn't receive enough oxygen, it can become damaged or start to die, leading to a heart attack.",
+        "github": "https://github.com/tharangachaminda/heart_attack_prediction",
+        "icons": ["python", "jupyterlab", "flask", "aws"]
+    },
+    
+    {
+        "header": "End-to-end",
+        "application_url": "diabetes_risk_prediction",
+        "image": "diabetes.png",
+        "title": "Early stage diabetes risk prediction",
+        "description": "Diabetes is a chronic health condition characterized by high levels of sugar (glucose) in the blood. It occurs when the body either doesn't produce enough insulin (a hormone that regulates blood sugar) or doesn't effectively use the insulin it produces. This results in an imbalance that can lead to various complications affecting multiple organ systems. <br /><br />",
+        "github": "https://github.com/tharangachaminda/early_stage_diabetes_risk_prediction",
+        "icons": ["python", "jupyterlab", "flask", "aws"]
+    },
+
+    {
+        "header": "Community and Volunteer",
+        "application_url": "medbot",
+        "image": "medbot.png",
+        "title": "MedBot",
+        "description": "MedBot was a prototype for remotely controlable robot, designed for COVID wards in hostiptals. This project was one of my volunteer projects which I was participated in 2020. In this project I was one of the main contributors in the team. I developed an Android mobile application as the remote controller application.<br /><br />",
+        "github": "https://bitbucket.org/tharangabitpvt/medbot-android-app",
+        "icons": ["python", "android", "mcu"]
     }
 
 ]

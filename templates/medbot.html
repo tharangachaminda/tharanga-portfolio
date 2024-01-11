@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block container %}
+
+<div class="container top-pad">    
+    <h2>MedBot</h2>
+    <p>In 2020 COVID pandemic was a very hard time for all of us. MedBot was one of my voluntary projects which I was participated as one of the main contributors in the team lead by Dr Jayawickrama, who is a senior lecturer in the faculty of Engineering, University if Ruhuna. 
+        This project was a collaborative work between Faculty of Engineering and Faculty of Medicine, University of Ruhuna, Sri Lanka. I was responsible for developing a mobile application as the remote controller for the robot. After many sleepless nights, we completed the prototype version of MedBot successfully. Due to its success, many public media reported it on their news bulletins.</p>
+
+    <div class="row mb-3">
+        <div class="col">
+            <iframe width="100%" style="height: 60vh" src="https://www.youtube.com/embed/SuDadPBoccY" frameborder="0" allowfullscreen></iframe> 
+        </div>
+    </div>
+    <div class="row mb-3">
+        <h4>MedBot was a popular news in the local media in Sri Lanka.</h4>
+        <div class="col-6">
+            <iframe width="100%" style="height: 40vh" src="https://www.youtube.com/embed/mYJCZLJ0GkE" frameborder="0" allowfullscreen></iframe>
+        </div>
+        <div class="col-6">
+            <iframe width="100%" style="height: 40vh" src="https://www.youtube.com/embed/cKoLQY3idLo" frameborder="0" allowfullscreen></iframe>
+        </div>
+    </div>
+    <div class="row mb-3">
+        <h4>During the work</h4>
+        <div class="col mb-2">
+            <img src="{{ url_for("static", filename="assets/images/medbot_2.jpg") }}" width="300px" />
+        </div>
+        <div class="col mb-2">
+            <img src="{{ url_for("static", filename="assets/images/medbot_1.jpg") }}" width="300px" />
+        </div>
+        <div class="col mb-2">
+            <img src="{{ url_for("static", filename="assets/images/medbot_3.jpg") }}" width="300px" />
+        </div>
+        <div class="col mb-2">
+            <img src="{{ url_for("static", filename="assets/images/medbot_5.jpg") }}" width="300px" />
+        </div>
+        <div class="col mb-2">
+            <img src="{{ url_for("static", filename="assets/images/medbot_4.jpg") }}" width="300px" />
+        </div>
+        <div class="col mb-2">
+            <img src="{{ url_for("static", filename="assets/images/medbot_8.jpg") }}" width="300px" />
+        </div>
+        <div class="col mb-2">
+            <img src="{{ url_for("static", filename="assets/images/medbot_6.jpg") }}" width="300px" />
+        </div>
+        <div class="col mb-2">
+            <img src="{{ url_for("static", filename="assets/images/medbot_7.jpg") }}" width="300px" />
+        </div>
+    </div>
+</div>
+
+{% endblock %}

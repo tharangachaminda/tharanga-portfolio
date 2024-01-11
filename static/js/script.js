@@ -266,4 +266,80 @@ $(document).ready(function(){
             }
         })
     });
+
+    // Heart attack prediction
+    $('#predict_heart_attack_btn').on('click', function(e){
+        
+        var age = $('#age').val()
+        var gender = $('input[name=gender]:checked').val()
+        var chest_pain_type = $('#chest_pain_type').val()
+        var resting_blood_pressure = $('#resting_blood_pressure').val()
+        var cholesterol_level = $('#cholesterol_level').val()
+        var fbs = $('input[name=fbs]:checked').val()
+        var resting_electrocardio = $('#resting_electrocardio').val()
+        var max_heart_rate = $('#max_heart_rate').val()
+        var exang = $('input[name=exang]:checked').val()
+        var oldpeak = $('#oldpeak').val()
+        var slp = $('#slp').val()
+        var num_major_vessels = $('#num_major_vessels').val()
+        var thall = $('#thall').val()
+
+        var form_data = {
+            'age': age,
+            'sex': gender,
+            'cp': chest_pain_type,
+            'trtbps': resting_blood_pressure,
+            'chol': cholesterol_level,
+            'fbs': fbs,
+            'restecg': resting_electrocardio,
+            'thalachh': max_heart_rate,
+            'exang': exang,
+            'oldpeak': oldpeak,
+            'slp': slp,
+            'caa': num_major_vessels,
+            'thall': thall
+        }
+
+        if(resting_blood_pressure == "" || cholesterol_level == "" || max_heart_rate == "" || oldpeak == "") {
+            show_hide_spinner(false);
+            $('#error_mgs').html('All fields are required.')
+        } else {
+            show_hide_spinner(true);
+
+            $.ajax({
+                url: '/heart_attack_prediction',
+                type: 'POST',
+                data: JSON.stringify(form_data),
+                contentType: 'application/json',
+                success: function(data) {
+                    //console.log(data);
+                    $('#result').html(data)
+                    show_hide_spinner(false);
+                },
+                error: function(jqXHR, textStatus, errorThrown) {
+                    console.log(textStatus, errorThrown);
+                }
+            });
+        }
+    });
+
+    // Diabetes prediction
+    $('#predict_diabetes_btn').on('click', function(e){
+        var form_data = Object.fromEntries(new URLSearchParams($('#model_values_form').serialize()))
+        
+        show_hide_spinner(true);
+        $.ajax({
+            url: '/diabetes_risk_prediction',
+            type: 'POST',
+            data: JSON.stringify(form_data),
+            contentType: 'application/json',
+            success: function(data) {
+                $('#result').html(data)
+                show_hide_spinner(false);
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+                console.log(textStatus, errorThrown);
+            }
+        });
+    });
 });
