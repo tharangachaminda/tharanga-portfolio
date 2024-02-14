@@ -12,9 +12,13 @@ import os
 import os.path
 import sys
 import requests
+import base64
 
+#os.environ['KERAS_BACKEND']='theano'
 #import tensorflow as tf
 #from tensorflow.keras.models import load_model
+#from keras.preprocessing.image import load_img, img_to_array
+#from keras.applications.inception_v3 import preprocess_input as preprocess_input_inception_v3
 
 import pickle
 import numpy as np
@@ -23,8 +27,28 @@ import time
 from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import MinMaxScaler
 
-from PIL import Image
+try:
+    from PIL import ImageEnhance
+    from PIL import Image as pil_image
+except ImportError:
+    pil_image = None
+    ImageEnhance = None
 
+if pil_image is not None:
+    _PIL_INTERPOLATION_METHODS = {
+        'nearest': pil_image.NEAREST,
+        'bilinear': pil_image.BILINEAR,
+        'bicubic': pil_image.BICUBIC,
+    }
+    # These methods were only introduced in version 3.4.0 (2016).
+    if hasattr(pil_image, 'HAMMING'):
+        _PIL_INTERPOLATION_METHODS['hamming'] = pil_image.HAMMING
+    if hasattr(pil_image, 'BOX'):
+        _PIL_INTERPOLATION_METHODS['box'] = pil_image.BOX
+    # This method is new in version 1.1.3 (2013).
+    if hasattr(pil_image, 'LANCZOS'):
+        _PIL_INTERPOLATION_METHODS['lanczos'] = pil_image.LANCZOS
+        
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.feature_extraction.text import CountVectorizer # Document Term Frequency
 import rake_nltk
@@ -229,8 +253,10 @@ def diabetes_risk_prediction():
 ##### Deep learning apps #####
 
 # Tf model serving with S3 bucket
-def get_tf_serving_rest_url(model_name, host='localhost', port='8501', verb='predict'):
-     url = "http://{0}:{1}/v1/models/{2}:predict".format(host,port,model_name)
+tfs_host = '127.0.0.1'
+#tfs_host = '52.43.46.199'
+def get_tf_serving_rest_url(model_name, host=tfs_host, port='8501', verb='predict'):
+     url = "http://{0}:{1}/v1/models/{2}:{3}".format(host, port, model_name, verb)
      
      return url
      
@@ -256,6 +282,11 @@ sign_language_resnet_model = "resnet_50"
 #alpaca_mobilenetv2_model = load_model('ML_models/alpaca_mobile_netv2_1701759341886')
 alpaca_mobilenetv2_model = "alpaca_mobile_netv2_1701759341886"
 
+handwritten_digits_model = 'mnist_digits_model'
+
+#image_captioning_model = "model_InceptionV3_trained"
+#inception_base_model_model = "model_InceptionV3_base"
+
 #co2_emission_lstm_model = load_model('ML_models/co2_emission_lstm_1701759497110')
 co2_emission_lstm_model = "co2_emission_lstm_1701759497110"
 
@@ -273,24 +304,104 @@ my_work = json.load(my_work_f)
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+def keras_load_img(path, grayscale=False, color_mode='rgb', target_size=None, interpolation='nearest'):
+    """Loads an image into PIL format.
 
-def imageToArray(imageName, inputWidth=64, inputHeight=64, preprocessing_method=None):
+    # Arguments
+        path: Path to image file.
+        color_mode: One of "grayscale", "rgb", "rgba". Default: "rgb".
+            The desired image format.
+        target_size: Either `None` (default to original size)
+            or tuple of ints `(img_height, img_width)`.
+        interpolation: Interpolation method used to resample the image if the
+            target size is different from that of the loaded image.
+            Supported methods are "nearest", "bilinear", and "bicubic".
+            If PIL version 1.1.3 or newer is installed, "lanczos" is also
+            supported. If PIL version 3.4.0 or newer is installed, "box" and
+            "hamming" are also supported. By default, "nearest" is used.
+
+    # Returns
+        A PIL Image instance.
+
+    # Raises
+        ImportError: if PIL is not available.
+        ValueError: if interpolation method is not supported.
+    """
+    if grayscale is True:
+        warnings.warn('grayscale is deprecated. Please use '
+                      'color_mode = "grayscale"')
+        color_mode = 'grayscale'
+    if pil_image is None:
+        raise ImportError('Could not import PIL.Image. '
+                          'The use of `array_to_img` requires PIL.')
+    img = pil_image.open(path)
+    if color_mode == 'grayscale':
+        if img.mode != 'L':
+            img = img.convert('L')
+    elif color_mode == 'rgba':
+        if img.mode != 'RGBA':
+            img = img.convert('RGBA')
+    elif color_mode == 'rgb':
+        if img.mode != 'RGB':
+            img = img.convert('RGB')
+    else:
+        raise ValueError('color_mode must be "grayscale", "rgb", or "rgba"')
+    if target_size is not None:
+        width_height_tuple = (target_size[1], target_size[0])
+        if img.size != width_height_tuple:
+            if interpolation not in _PIL_INTERPOLATION_METHODS:
+                raise ValueError(
+                    'Invalid interpolation method {} specified. Supported '
+                    'methods are {}'.format(
+                        interpolation,
+                        ", ".join(_PIL_INTERPOLATION_METHODS.keys())))
+            resample = _PIL_INTERPOLATION_METHODS[interpolation]
+            img = img.resize(width_height_tuple, resample)
+    return img
+
+def keras_img_to_array(img, data_format='channels_last', dtype='float32'):
+    """Converts a PIL Image instance to a Numpy array.
+
+    # Arguments
+        img: PIL Image instance.
+        data_format: Image data format,
+            either "channels_first" or "channels_last".
+        dtype: Dtype to use for the returned array.
+
+    # Returns
+        A 3D Numpy array.
+
+    # Raises
+        ValueError: if invalid `img` or `data_format` is passed.
+    """
+    if data_format not in {'channels_first', 'channels_last'}:
+        raise ValueError('Unknown data_format: %s' % data_format)
+    # Numpy array x has format (height, width, channel)
+    # or (channel, height, width)
+    # but original PIL image has format (width, height, channel)
+    x = np.asarray(img, dtype=dtype)
+    if len(x.shape) == 3:
+        if data_format == 'channels_first':
+            x = x.transpose(2, 0, 1)
+    elif len(x.shape) == 2:
+        if data_format == 'channels_first':
+            x = x.reshape((1, x.shape[0], x.shape[1]))
+        else:
+            x = x.reshape((x.shape[0], x.shape[1], 1))
+    else:
+        raise ValueError('Unsupported image shape: %s' % (x.shape,))
+    return x
+
+def imageToArray(image_path, grayscale=False, color_mode='rgb', target_size=None, noOfChannels=3, preprocessing_method=None):
     # Load the image and resize it to the desired dimensions
     # image_path = f'images/{imageName}'
-    image_path = imageName
-    width, height = inputWidth, inputHeight
-
-    image = Image.open(image_path)
-
-    if image.width < inputWidth or image.height < inputHeight:
-        return False
-
-    image = image.resize((width, height))
-    #print(image.width)
-    # Convert the image to a NumPy array and normalize the pixel values (if necessary)
-    image_array = np.array(image)
-    if preprocessing_method is None:
-        image_array = image_array / 255.  # Normalize the pixel values between 0 and 1
+    
+    imageArray = None
+    
+    image = keras_load_img(image_path, color_mode=color_mode, target_size=target_size)
+    imageArray = keras_img_to_array(image)
+    imageArray = imageArray.reshape(1, target_size[0], target_size[1], noOfChannels)
+    imageArray = imageArray / 255.0
 
     # plt.imshow(image_array)
     # plt.show()
@@ -299,33 +410,165 @@ def imageToArray(imageName, inputWidth=64, inputHeight=64, preprocessing_method=
     # Reshape the image array to match the input shape of your model
     # Assumes the input shape is (width, height, 3)
     try:
-        image_array = image_array.reshape(1, width, height, 3)
         if preprocessing_method is not None:
-            image_array = preprocessing_method(image_array)
-    except:
+            imageArray = preprocessing_method(image_array)
+    except Exception as error:
+        print('Image exception: ', error)
         if os.path.exists(image_path):
             os.remove(image_path)
         return False
 
-    return image_array
+    return imageArray
 
 
 @app.route("/mood_detection")
 def mood_detection():
     return render_template("mood_detection.html")
 
+@app.route("/image_captioning", methods=["GET", "POST"])
+def image_captioning():
+    return render_template("image_captioning.html")
+    """
+    if request.method == "GET":
+        return render_template("image_captioning.html")
+    elif request.method == "POST":
+        if 'image_file' not in request.files:
+            return render_template('model_result.html', message={'type': 'error', 'text': 'You have not uploaded an image.'})
+        
+        image = request.files['image_file']
+        
+        if not allowed_file(image.filename):
+            return render_template('model_result.html', message={'type': 'error', 'text': 'Not a valid image file.'})
+        
+        inputImageWidth, inputImageHeight = 299, 299
+        preprocessing_method = None
+        #preprocessing_method = keras.applications.vgg16.preprocess_input
+        
+        file_extension = image.filename.rsplit('.', 1)[1]
+        temp_filename = f'{int(time.time())}.{file_extension}'
+        image.save(os.path.join(up_path, temp_filename))
+        temp_file_path = os.path.join(up_path, temp_filename)
+        
+        upImage = load_img(temp_file_path, target_size=(299, 299))
+        upImage = img_to_array(upImage)
+        upImage = upImage.reshape((1, upImage.shape[0], upImage.shape[1], upImage.shape[2]))
+        upImage = preprocess_input_inception_v3(upImage)
+        
+        #upImage = imageToArray(temp_file_path, 299, 299, preprocess_input_inception_v3)
+        
+        # imageArray = imageToArray(
+        #     temp_file_path, inputImageWidth, inputImageHeight, preprocessing_method)
+
+        # if imageArray is False:
+        #     return render_template('model_result.html', message={'type': 'error', 'text': 'Your image has some issues.'})
+        
+        tf_serving_incep_url = get_tf_serving_rest_url(inception_base_model_model)
+        
+        image_features_response = tr_serving_rest_request(upImage.tolist(), tf_serving_incep_url)
+        image_features_json = image_features_response.json()
+        print('get image features: ', image_features_json)
+        
+        # error handling
+        if 'error' in image_features_json:
+            return render_template('model_result.html', message={'type': 'error', 'text': "Something went wrong!"})
+        
+        with open('ML_models/tokenizer.pkl', 'rb') as f:
+            tokenizer = load(f) 
+        
+        generate_desc(tokenizer, image_features_json['predictions'], 34)
+        
+        return 'Works so far'
+        """
+
+def generate_desc(tokenizer, photo, max_length):
+    # seed the generation process
+    in_text = 'startseq'
+    
+    tf_serving_url = get_tf_serving_rest_url(image_captioning_model)
+        
+    # iterate over the whole length of the sequence
+    for i in range(max_length):
+        # print("output %d" % i)
+        # integer encode input sequence
+        sequence = tokenizer.texts_to_sequences([in_text])[0]
+        # pad input
+        sequence = pad_sequences([sequence], maxlen=max_length)
+        # predict next word
+        # yhat = model.predict([photo, sequence], verbose=0)
+        tr_serving_response = tr_serving_rest_request([photo, sequence], tf_serving_url)
+        tr_serving_response_json = tr_serving_response.json()
+        print(tr_serving_response_json)
+        
+        yhat = tr_serving_response_json['predictions']
+    
+        # convert probability to integer
+        yhat = argmax(yhat)
+        
+        # map integer to word
+        word = word_for_id(yhat, tokenizer)
+        # print("output2 %s %d" % (word, yhat))
+        # stop if we cannot map the word
+        if word is None:
+            break
+        # append as input for generating the next word
+        in_text += ' ' + word
+        # stop if we predict the end of the sequence
+        if word == 'endseq':
+            break
+    return in_text        
+
+def word_for_id(integer, tokenizer):
+    """
+    This function will map integer to a word in the tokenizer.
+
+    Parameters:
+        integer - Integer Word ID
+        tokenizer - Keras tikenizer
+
+    Return:
+        Relevant word - If found in the tokenizer. None otherwise
+    """
+    for word, index in tokenizer.word_index.items():
+        #print('tokenizer: %d %s' % (index, word))
+        if index == integer:
+            return word
+
+    return None
+
 @app.route("/predict_cnn/<task>", methods=["POST"])
 def predict_cnn(task):
     if request.method == 'POST':
-        if 'image_file' not in request.files:
-            return render_template('model_result.html', message={'type': 'error', 'text': 'You have not uploaded an image.'})
+        #if 'image_file' not in request.files:
+        #    return render_template('model_result.html', message={'type': 'error', 'text': 'You have not uploaded an image.'})
 
         model_obj = mood_detection_model
         output_class_strings = mood_class_strings
         inputImageWidth = 64
         inputImageHeight = 64
         preprocessing_method = None
+        imageArray = None
+        colorMode = 'rgb'
+        noOfChannels = 3
 
+        request_json = request.get_json()
+                
+        #image = request.files['image_file']
+        imageBase64 = request_json['image_file']
+        file_extension = imageBase64.split(';')[0].split('/')[1]        
+        #file_extension = image.filename.rsplit('.', 1)[1]
+        temp_filename = f'{int(time.time())}.{file_extension}'
+        temp_file_path = os.path.join(up_path, temp_filename)
+        
+        with open(temp_file_path, "wb") as fh:
+            fh.write(base64.b64decode(imageBase64.split('base64,')[1]))        
+        
+        #print(temp_file_path)
+        #return render_template('model_result.html', message={'type': 'error', 'text': 'Processing.'})
+        #image.save(os.path.join(up_path, temp_filename))
+                
+        if not allowed_file(temp_filename):
+            return render_template('model_result.html', message={'type': 'error', 'text': 'Not a valid image file.'})
+        
         if task == "sign_language":
             model_obj = sign_language_model
             output_class_strings = sign_language_class_strings
@@ -338,18 +581,17 @@ def predict_cnn(task):
             inputImageWidth = 160
             inputImageHeight = 160
             #preprocessing_method = tf.keras.applications.mobilenet_v2.preprocess_input
+        elif task == 'handwritten_digits_recognition':
+            model_obj = handwritten_digits_model
+            output_class_strings = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+            inputImageWidth = 28
+            inputImageHeight = 28
+            colorMode = 'grayscale'
+            noOfChannels = 1
 
-        image = request.files['image_file']
-
-        if not allowed_file(image.filename):
-            return render_template('model_result.html', message={'type': 'error', 'text': 'Not a valid image file.'})
-
-        file_extension = image.filename.rsplit('.', 1)[1]
-        temp_filename = f'{int(time.time())}.{file_extension}'
-        image.save(os.path.join(up_path, temp_filename))
-        temp_file_path = os.path.join(up_path, temp_filename)
-        imageArray = imageToArray(
-            temp_file_path, inputImageWidth, inputImageHeight, preprocessing_method)
+        
+        if imageArray is None:
+            imageArray = imageToArray(temp_file_path, color_mode=colorMode, target_size=(inputImageWidth, inputImageHeight), noOfChannels=noOfChannels)
 
         if imageArray is False:
             return render_template('model_result.html', message={'type': 'error', 'text': 'Your image has some issues.'})
@@ -369,7 +611,7 @@ def predict_cnn(task):
         model_predict_prob = tr_serving_response_json['predictions']
         #print(model_predict_prob)
 
-        if task == 'sign_language' or task == 'sign_language_resnet':
+        if task == 'sign_language' or task == 'sign_language_resnet' or task == 'handwritten_digits_recognition':
             model_predict_int = np.argmax(model_predict_prob)
         else:
             model_predict_int = int(model_predict_prob[0][0] > 0.5)
@@ -400,6 +642,10 @@ def sign_language_recognition_resnet():
 @app.route('/alpaca_mobilenetv2')
 def alpaca_mobilenetv2():
     return render_template('alpaca_mobilenetv2.html')
+
+@app.route('/handwritten_digits_recognition')
+def handwritten_digits_recognition():
+    return render_template('handwritten_digits.html')
 
 @app.route('/co2_emission_lstm', methods=['GET', 'POST'])
 def co2_emission_lstm():

@@ -44,10 +44,10 @@ body {
   background-position: center;
 }
 
-footer .nav-link {
+footer .nav-link, .navbar-dark .nav-link {
   color: #cecece;
 }
 
-footer .nav-link:hover {
+footer .nav-link:hover, .navbar-dark .nav-link:hover {
   color: #fff;
 }

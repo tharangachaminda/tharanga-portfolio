@@ -4,6 +4,82 @@ $(document).ready(function(){
         return false;
     });
 
+    // initialize canvas for handwritten digits
+    (function() {
+        var canvas = this.__canvas = new fabric.Canvas('digit_canvas', {
+            isDrawingMode: true,
+            freeDrawingBrush: {
+                color: 'rgb(255, 0, 0)',
+                width: 20
+            }
+        });
+
+        fabric.Object.prototype.transparentCorners = false;
+
+        var brushSize = 10
+        canvas.setBackgroundColor('rgba(0, 0, 0, 1)', canvas.renderAll.bind(canvas));
+        canvas.freeDrawingBrush.color = 'rgba(255, 255, 255, 1)';
+        canvas.freeDrawingBrush.width = brushSize;
+        canvas.freeDrawingCursor = `url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAYAAAByDd+UAAABr0lEQVRIibWVPUscURSGX1dtks7CJuDPsApEEMFCbEOiRLKNXbKruBZbiEIWnM0WFmKfH5E+YBVIkSpgYWwsEoLED/AD9ZErZ2D2Mt87vnBh5t475+Gc+547AqoeS8Av4BhoAEPR+FXCxoA2cE+/uk8FfOmBoupWCXwGTAHPLcMkBVUBN4EzoG7vH1Kga4PCmsCNBbsE3th8IwF4MgjMBb3zAl4Bi7a+GmOgP2Vh68BtQhYOumD7PnrQZtkyJsFCXQNvbX/LzngHGC4KW80AReUye2+NP2suLuTSJCNk6VU0TpEyltEuMFEUmNZXaerFxcuCtXIYJE6fnEGKAldKwgL/D5EH2Ipp2ryZpVatSoNs5zGgP9F5SpgbNfXrtyRUTD1J67m/MPIL4J09zwD/q87ML+mkXbqBvc+7X0kGrJvmxixgPRKoY3Pu/jtNgDk31orCQuAo8MUL2LYNc8C5txaUhYXAceAoJost2zQduQCCsqAocCrlnD5HSr43KCwEbmSYY7kKUDhGJL32OuWvpO+Svkn6KemwYF+mygH/STqQ9FXSvqQfNndRJehRkh4AUb1AC50iecgAAAAASUVORK5CYII=') 0 ${brushSize + 12}, crosshair`
+        // canvas.freeDrawingBrush.shadow.color = 'rgba(0, 0, 0, 1)';
+        // canvas.freeDrawingBrush.shadow.offsetX = 0;
+        // canvas.freeDrawingBrush.shadow.offsetY = 0;
+
+        $('#clear_canvas_btn').on('click', function(){
+            canvas.clear();
+            canvas.setBackgroundColor('rgba(0, 0, 0, 1)', canvas.renderAll.bind(canvas));
+        });
+
+        $('#handwritten_predict_btn').on('click', function(e){
+            var cnn_task = $(this).data('task');
+
+            var imageBase64 = canvas.toDataURL({
+                format: 'png',
+                left: 0,
+                top: 0,
+                width: 200,
+                height: 200
+            });
+
+            //console.log(imageBase64);
+
+            $('#error_mgs').html('');
+
+            var formData = JSON.stringify({'image_file': imageBase64});
+            
+            $.ajax({
+                url: '/predict_cnn/' + cnn_task,
+                type: 'POST',
+                data: formData,
+                contentType: 'application/json',
+                success: function(data) {
+                    //console.log(data);
+                    $('#result').html(data)
+                    show_hide_spinner(false);
+                },
+                error: function(jqXHR, textStatus, errorThrown) {
+                    show_hide_spinner(false);
+                    console.log(textStatus, errorThrown);
+                    $('#error_mgs').html("Sorry! Something went wrong. (" + errorThrown + ")");
+                }
+            });
+        });
+
+    })();
+
+    $('.btn-prof-category').on('click', function(e){
+        var proj_category = $(this).data('profcat');
+        //console.log('clicked!', proj_category)
+
+        if(proj_category == 'all') {
+            $('.trpf-card').fadeIn(200);
+        } else {
+            $('.trpf-card').hide();
+            $('.' + proj_category).fadeIn(200);
+        }
+        
+    });
+
     // Upload image for mood detection
     
     function show_hide_spinner(is_show) {
@@ -18,6 +94,51 @@ $(document).ready(function(){
     $('#upload_image_btn').on('click', function(e){
         var cnn_task = $(this).data('task');
         
+        var image_file = $('#image_file').prop('files');        
+
+        if(image_file.length == 0) {
+            $('#error_mgs').html('Please pick an image.')
+        } else {
+            show_hide_spinner(true);
+            var image_obj = image_file[0];
+            var image_size = parseFloat(image_obj.size / (1024 * 1024));
+
+            if(image_size > 2) {
+                $('#error_mgs').html('Max size exceeded.!' + image_size)
+            } else {
+                $('#error_mgs').html('')
+
+                encodeImageFileAsURL(image_obj, function(data){
+                    $('#image_preview').html('<img src="' + data.result + '" width=100 />')
+
+                    var formData = JSON.stringify({'image_file': data.result});
+
+                    $('#result').html('');
+
+                    $.ajax({
+                        url: '/predict_cnn/' + cnn_task,
+                        type: 'POST',
+                        data: formData,
+                        contentType: 'application/json',
+                        success: function(data) {
+                            //console.log(data);
+                            $('#result').html(data)
+                            show_hide_spinner(false);
+                        },
+                        error: function(jqXHR, textStatus, errorThrown) {
+                            show_hide_spinner(false);
+                            console.log(textStatus, errorThrown);
+                            $('#error_mgs').html("Sorry! Something went wrong. (" + errorThrown + ")");
+                        }
+                    })
+                });  
+               
+            }
+        }        
+    });
+
+    // Image captioning
+    $("#generate_caption_btn").on("click", function(e){
         var image_file = $('#image_file').prop('files');
 
         if(image_file.length == 0) {
@@ -42,7 +163,7 @@ $(document).ready(function(){
                 $('#result').html('');
 
                 $.ajax({
-                    url: '/predict_cnn/' + cnn_task,
+                    url: '/image_captioning',
                     type: 'POST',
                     cache: false,
                     processData: false,
@@ -50,13 +171,18 @@ $(document).ready(function(){
                     data: formData,
                     enctype: 'multipart/form-data',
                     success: function(data) {
-                        console.log(data);
+                        //console.log(data);
                         $('#result').html(data)
                         show_hide_spinner(false);
+                    },
+                    error: function(jqXHR, textStatus, errorThrown) {
+                        show_hide_spinner(false);
+                        console.log(textStatus, errorThrown);
+                        $('#error_mgs').html("Sorry! Something went wrong. (" + errorThrown + ")");
                     }
                 })
             }
-        }        
+        }
     });
 
     // get base64 image data
@@ -97,9 +223,14 @@ $(document).ready(function(){
                 data: JSON.stringify(formData),
                 contentType: 'application/json',
                 success: function(data){
-                    console.log(data);
+                    //console.log(data);
                     $('#result').html(data)
                     show_hide_spinner(false);
+                },
+                error: function(jqXHR, textStatus, errorThrown) {
+                    show_hide_spinner(false);
+                    console.log(textStatus, errorThrown);
+                    $('#error_mgs').html("Sorry! Something went wrong. (" + errorThrown + ")");
                 }
             });
         }
@@ -129,9 +260,14 @@ $(document).ready(function(){
             data: JSON.stringify(formData),
             contentType: 'application/json',
             success: function(data) {
-                console.log(data)
+                //console.log(data)
                 $('#result').html(data)
                 show_hide_spinner(false);
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+                show_hide_spinner(false);
+                console.log(textStatus, errorThrown);
+                $('#error_mgs').html("Sorry! Something went wrong. (" + errorThrown + ")");
             }
         });
 
@@ -157,6 +293,11 @@ $(document).ready(function(){
                     //console.log(data)
                     $('#result').html(data)
                     show_hide_spinner(false);
+                },
+                error: function(jqXHR, textStatus, errorThrown) {
+                    show_hide_spinner(false);
+                    console.log(textStatus, errorThrown);
+                    $('#error_mgs').html("Sorry! Something went wrong. (" + errorThrown + ")");
                 }
             });
         }        
@@ -205,7 +346,7 @@ $(document).ready(function(){
             }),
             contentType: 'application/json',
             success: function(data) {
-                console.log(data);
+                //console.log(data);
                 //$('#result').html(data);
 
                 //var data = JSON.parse( responseData, reviver );
@@ -262,7 +403,9 @@ $(document).ready(function(){
                 
             },
             error: function(jqXHR, textStatus, errorThrown) {
+                show_hide_spinner(false);
                 console.log(textStatus, errorThrown);
+                $('#error_mgs').html("Sorry! Something went wrong. (" + errorThrown + ")");
             }
         })
     });
@@ -317,7 +460,9 @@ $(document).ready(function(){
                     show_hide_spinner(false);
                 },
                 error: function(jqXHR, textStatus, errorThrown) {
+                    show_hide_spinner(false);
                     console.log(textStatus, errorThrown);
+                    $('#error_mgs').html("Sorry! Something went wrong. (" + errorThrown + ")");
                 }
             });
         }
@@ -338,8 +483,25 @@ $(document).ready(function(){
                 show_hide_spinner(false);
             },
             error: function(jqXHR, textStatus, errorThrown) {
+                show_hide_spinner(false);
                 console.log(textStatus, errorThrown);
+                $('#error_mgs').html("Sorry! Something went wrong. (" + errorThrown + ")");
             }
         });
     });
+
+});
+
+$(window).on('load', function () {
+    if(window.location.pathname == '/') {
+        $('#projectCategoriesButtons').show();
+
+        $('#countAllProjects').html($('.trpf-card').length);
+        $('#countMLProjects').html($('.ml').length);
+        $('#countDLProjects').html($('.dl').length);
+        $('#countAnalysisProjects').html($('.dashboard').length);
+        $('#countVolunteerProjects').html($('.volunteer').length);
+    } else {
+        $('#projectCategoriesButtons').hide();
+    }
 });

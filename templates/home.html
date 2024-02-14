@@ -3,7 +3,7 @@
   <div class="row">
     {% for work in mywork %}
 
-    <div class="col-lg-6 col-md-12 col-sm-12">
+    <div class="col-lg-6 col-md-12 col-sm-12 trpf-card {{work['type']}}">
       <div class="card mb-3 card-shadow">
         <div class="card-header">
           <h5 class="col-8 float-start">{{ work['header'] }}</h5>
