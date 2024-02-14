@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+
+{% block container %}
+
+<div class="container top-pad">    
+    <div class="row">
+        <div class="col">
+            <h2>Handwritten Digits Recognition (CNN)</h2>
+            <p>You can upload your own image and see what the model says about it.</p>
+            <p class="alert alert-info"><i class="bi bi-info-circle-fill"></i> We can improve this model by changing the model architecture, and adding more training data. At this level I wanted to showcase my work towards implementation and deployment of Deep Learning model.</p>
+            <form class="no-submit-form">
+                <div class="form-group mb-2">
+                    <label for="image_file" class="mb-2"><i class="bi bi-pencil"></i> Draw a number between 0 to 9 and click on Predict button</label>
+                    <canvas id="digit_canvas" width="200" height="200" />
+                </div>     
+                <div class="form-group mb-2">
+                    <button class="btn btn-dark" id="clear_canvas_btn">Clear</button>
+                    <button class="btn btn-dark predict-btn" id="handwritten_predict_btn" data-task='handwritten_digits_recognition'>Predict</button>
+                </div>  
+                <div id="error_mgs" class="text-danger"></div> 
+                <div class="row">
+                    <div id="result" class="col">{% block model_result %}{% endblock %}</div>
+                </div>
+                <div class="mb-2">
+                    {% include "spinner_block.html" %}
+                </div> 
+            </form>
+        </div>
+        <div class="col">
+            <h2>Development summary</h2>
+            <h4>High-level architecture of the application</h4>
+            <img src="{{ url_for("static", filename="assets/images/archi_dl_tr_serving.png") }}" />
+            <h4>Model summary</h4>
+            <div class="mb-2">
+                <span class="badge bg-primary p-2">Training accuracy: 99%</span>
+                <span class="badge bg-primary p-2">Validation accuracy: 99%</span>
+            </div>
+            <pre>
+_________________________________________________________________
+Layer (type)                Output Shape              Param #   
+=================================================================
+conv2d (Conv2D)             (None, 26, 26, 32)        320       
+                                                                
+max_pooling2d (MaxPooling2  (None, 13, 13, 32)        0         
+D)                                                              
+                                                                
+conv2d_1 (Conv2D)           (None, 11, 11, 64)        18496     
+                                                                
+dropout (Dropout)           (None, 11, 11, 64)        0         
+                                                                
+conv2d_2 (Conv2D)           (None, 9, 9, 64)          36928     
+                                                                
+max_pooling2d_1 (MaxPoolin  (None, 4, 4, 64)          0         
+g2D)                                                            
+                                                                
+flatten (Flatten)           (None, 1024)              0         
+                                                                
+dense (Dense)               (None, 100)               102500    
+                                                                
+dense_1 (Dense)             (None, 10)                1010      
+                                                                
+=================================================================
+Total params: 159254 (622.09 KB)
+Trainable params: 159254 (622.09 KB)
+Non-trainable params: 0 (0.00 Byte)
+_________________________________________________________________
+            </pre>
+        </div>
+    </div>    
+</div>
+
+{% endblock %}

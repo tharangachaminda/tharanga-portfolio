@@ -1,0 +1,321 @@
+{% extends 'base.html' %}
+
+{% block container %}
+
+<div class="container top-pad">    
+    <div class="row">
+        <div class="col">
+            <h2>Early stage diabetes risk prediction</h2>
+            <p>Provide apprpriate answers for following questions and predict whether you have a risk of diabetes.</p>
+            <p class="alert alert-info"><i class="bi bi-info-circle-fill"></i> We can improve this model by changing the model architecture, and adding more training data. At this level I wanted to showcase my work towards implementation and deployment of Machine Learning model.</p>
+            <form class="no-submit-form" id="model_values_form">
+                <div class="form-group mb-3">
+                    <div class="row">
+                        <div class="col">
+                            <label for="age">Age</label>
+                            <select class="form-select" name="age" id="age">
+                                {% for i in range(16, 91): %}
+                                <option value="{{i}}">{{i}}</option>
+                                {% endfor %}
+                            </select>                            
+                        </div>
+                        <div class="col">
+                            <div class="form-group mb-3">
+                                <label>Gender</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" value="Male" name="gender" id="gender_male" checked>
+                                    <label class="form-check-label" for="gender_male">
+                                        Male
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" value="Female" name="gender" id="gender_female">
+                                    <label class="form-check-label" for="gender_female">
+                                        Female
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="form-group mb-3">
+                                <label>Polyuria</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" value="Yes" name="plyuria" id="plyuria_yes" checked>
+                                    <label class="form-check-label" for="plyuria_yes">
+                                        Yes
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" value="No" name="plyuria" id="plyuria_no">
+                                    <label class="form-check-label" for="plyuria_no">
+                                        No
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="form-group mb-3">
+                                <label>Polydipsia</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" value="Yes" name="polydipsia" id="polydipsia_yes" checked>
+                                    <label class="form-check-label" for="polydipsia_yes">
+                                        Yes
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" value="No" name="polydipsia" id="polydipsia_no">
+                                    <label class="form-check-label" for="polydipsia_no">
+                                        No
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>                    
+                </div>
+
+                <div class="row">
+                    <div class="col">
+                        <div class="form-group mb-3">
+                            <label>Sudden weight loss</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" value="Yes" name="sudden_weight_loss" id="sudden_weight_loss_yes" checked>
+                                <label class="form-check-label" for="sudden_weight_loss_yes">
+                                    Yes
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" value="No" name="sudden_weight_loss" id="sudden_weight_loss_no">
+                                <label class="form-check-label" for="sudden_weight_loss_no">
+                                    No
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="form-group mb-3">
+                            <label>Weakness</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" value="Yes" name="weakness" id="weakness_yes" checked>
+                                <label class="form-check-label" for="weakness_yes">
+                                    Yes
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" value="No" name="weakness" id="weakness_no">
+                                <label class="form-check-label" for="weakness_no">
+                                    No
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="form-group mb-3">
+                            <label>Polyphagia</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" value="Yes" name="polyphagia" id="polyphagia_yes" checked>
+                                <label class="form-check-label" for="polyphagia_yes">
+                                    Yes
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" value="No" name="polyphagia" id="polyphagia_no">
+                                <label class="form-check-label" for="polyphagia_no">
+                                    No
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="form-group mb-3">
+                            <label>Genital thrush</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" value="Yes" name="genital_thrush" id="genital_thrush_yes" checked>
+                                <label class="form-check-label" for="genital_thrush_yes">
+                                    Yes
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" value="No" name="genital_thrush" id="genital_thrush_no">
+                                <label class="form-check-label" for="genital_thrush_no">
+                                    No
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col">
+                        <div class="form-group mb-3">
+                            <label>Visual blurring</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" value="Yes" name="visual_blurring" id="visual_blurring_yes" checked>
+                                <label class="form-check-label" for="visual_blurring_yes">
+                                    Yes
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" value="No" name="visual_blurring" id="visual_blurring_no">
+                                <label class="form-check-label" for="visual_blurring_no">
+                                    No
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="form-group mb-3">
+                            <label>Itching</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" value="Yes" name="itching" id="itching_yes" checked>
+                                <label class="form-check-label" for="itching_yes">
+                                    Yes
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" value="No" name="itching" id="itching_no">
+                                <label class="form-check-label" for="itching_no">
+                                    No
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="form-group mb-3">
+                            <label>Irritability</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" value="Yes" name="irritability" id="irritability_yes" checked>
+                                <label class="form-check-label" for="irritability_yes">
+                                    Yes
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" value="No" name="irritability" id="irritability_no">
+                                <label class="form-check-label" for="irritability_no">
+                                    No
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="form-group mb-3">
+                            <label>Delayed healing</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" value="Yes" name="delayed_healing" id="delayed_healing_yes" checked>
+                                <label class="form-check-label" for="delayed_healing_yes">
+                                    Yes
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" value="No" name="delayed_healing" id="delayed_healing_no">
+                                <label class="form-check-label" for="delayed_healing_no">
+                                    No
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col">
+                        <div class="form-group mb-3">
+                            <label>Partial paresis</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" value="Yes" name="partial_paresis" id="partial_paresis_yes" checked>
+                                <label class="form-check-label" for="partial_paresis_yes">
+                                    Yes
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" value="No" name="partial_paresis" id="partial_paresis_no">
+                                <label class="form-check-label" for="partial_paresis_no">
+                                    No
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="form-group mb-3">
+                            <label>Muscle stiffness</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" value="Yes" name="muscle_stiffness" id="muscle_stiffness_yes" checked>
+                                <label class="form-check-label" for="muscle_stiffness_yes">
+                                    Yes
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" value="No" name="muscle_stiffness" id="muscle_stiffness_no">
+                                <label class="form-check-label" for="muscle_stiffness_no">
+                                    No
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="form-group mb-3">
+                            <label>Alopecia</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" value="Yes" name="alopecia" id="alopecia_yes" checked>
+                                <label class="form-check-label" for="alopecia_yes">
+                                    Yes
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" value="No" name="alopecia" id="alopecia_no">
+                                <label class="form-check-label" for="alopecia_no">
+                                    No
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="form-group mb-3">
+                            <label>Obesity</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" value="Yes" name="obesity" id="obesity_yes" checked>
+                                <label class="form-check-label" for="obesity_yes">
+                                    Yes
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" value="No" name="obesity" id="obesity_no">
+                                <label class="form-check-label" for="obesity_no">
+                                    No
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group mb-3">
+                    <button class="btn btn-dark predict-btn" id="predict_diabetes_btn">Predict</button>
+                </div>
+
+                <div id="error_mgs" class="text-danger"></div> 
+                <div id="result">{% block model_result %}{% endblock %}</div>
+
+                <div class="mb-2">
+                    {% include "spinner_block.html" %}
+                </div>
+            </form>
+        </div>
+        <div class="col">
+            <h2>Development summary</h2>
+            <h4>High-level architecture of the application</h4>
+            <img src="{{ url_for("static", filename="assets/images/archi_ml.png") }}" />
+            <h4>Model summary</h4>
+            <div class="mb-2">
+                <span class="badge bg-primary p-2">Model accuracy: 97%</span>
+            </div>
+            <p>In this project I have implemented <b>Decision Tree Classifier</b> model with GridSearchCV to search for optimal hyperparameters.</p>
+            <pre>
+Best params: {'dt__criterion': 'gini', 'dt__max_depth': 7, 'dt__splitter': 'best'}
+Best score:  0.976923076923077
+Best estimator:  
+DecisionTreeClassifier('dt__criterion'='gini', 'dt__max_depth'=7, 'dt__splitter'='best')
+            </pre>
+
+        </div>
+    </div>    
+</div>
+
+{% endblock %}

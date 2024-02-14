@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+
+{% block container %}
+
+<div class="container top-pad">    
+    <div class="row">
+        <div class="col">
+            <h2>Image Captioning (CNN, RNN, LSTM, InceptionV3)</h2>
+            <!--p>You can upload your own image and see what the model says about it.</p -->
+            <p class="alert alert-info"><i class="bi bi-info-circle-fill"></i> Apologize!!! Due to the limitations of free tier AWS EC2 instance it is not possible to run this large models. We can improve this model by changing the model architecture, and adding more training data. At this level I wanted to showcase my work towards implementation and deployment of Deep Learning model.</p>
+            <p>These images shows how it runs on Google Colabs with InceptionV3 model. It does a very good job.</p>
+            <div class="col">
+                <img src="{{ url_for("static", filename="assets/images/image_captioning/predict_1.png") }}" width="95%" />
+            </div>
+            <div class="col">
+                <img src="{{ url_for("static", filename="assets/images/image_captioning/predict_2.png") }}" width="95%" />
+            </div>
+            
+            <!--form class="no-submit-form">
+                <div class="form-group mb-2">
+                    <label for="image_file">Pick your image</label>
+                    <input class="form-control" type="file" id="image_file" />
+                    <small class="form-text text-muted">Try to pick image with | Max size: 2 Mb | File types: png, jpg, jpeg</small>
+                </div>     
+                <div class="form-group mb-2">
+                    <button class="btn btn-dark predict-btn" id="generate_caption_btn">Generate caption</button>
+                </div>  
+                <div id="error_mgs" class="text-danger"></div> 
+                <div class="row">
+                    <div id="image_preview" class="col-3"></div>
+                    <div id="result" class="col-9">{% block model_result %}{% endblock %}</div>
+                </div>
+                <div class="mb-2">
+                    {% include "spinner_block.html" %}
+                </div> 
+            </form -->
+        </div>
+        <div class="col">
+            <h2>Development summary</h2>
+            <h4>High-level architecture of the application</h4>
+            <img src="{{ url_for("static", filename="assets/images/archi_dl_tr_serving.png") }}" />
+            <h4>Model summary - (Base model: InceptionV3)</h4>
+            <div class="mb-2">
+                <h6>BLUE Score</h6>
+                <pre>
+BLUE (weight: 1.0): 0.505570
+BLUE (weight: 0.5): 0.263104
+BLUE (weight: 0.3): 0.182887
+BLUE (weight: 0.25): 0.089559
+                </pre>
+            </div>
+            <pre>
+_________________________________________________________________________________________
+Layer (type)                Output Shape                 Param #   Connected to                  
+=========================================================================================
+input_11 (InputLayer)       [(None, 34)]                 0         []                            
+                                                                                                    
+input_10 (InputLayer)       [(None, 2048)]               0         []                            
+                                                                                                    
+embedding_4 (Embedding)     (None, 34, 128)              1122048   ['input_11[0][0]']            
+                                                                                                    
+dropout_8 (Dropout)         (None, 2048)                 0         ['input_10[0][0]']            
+                                                                                                    
+dropout_9 (Dropout)         (None, 34, 128)              0         ['embedding_4[0][0]']         
+                                                                                                    
+dense_12 (Dense)            (None, 128)                  262272    ['dropout_8[0][0]']           
+                                                                                                    
+lstm_4 (LSTM)               (None, 128)                  131584    ['dropout_9[0][0]']           
+                                                                                                    
+add_4 (Add)                 (None, 128)                  0         ['dense_12[0][0]',            
+                                                                    'lstm_4[0][0]']              
+                                                                                                    
+dense_13 (Dense)            (None, 128)                  16512     ['add_4[0][0]']               
+                                                                                                    
+dense_14 (Dense)            (None, 8766)                 1130814   ['dense_13[0][0]']            
+                                                                                                    
+=========================================================================================
+Total params: 2663230 (10.16 MB)
+Trainable params: 2663230 (10.16 MB)
+Non-trainable params: 0 (0.00 Byte)
+_________________________________________________________________________________________
+        </pre>
+        </div>
+    </div>    
+</div>
+
+{% endblock %}
