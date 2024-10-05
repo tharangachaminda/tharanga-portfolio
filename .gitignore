@@ -160,5 +160,5 @@ cython_debug/
 #.idea/
 
 # uploaded temp images
-static/images/temp/
+static/assets/temp/
 ML_models/

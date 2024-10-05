@@ -10,7 +10,7 @@
             <p class="alert alert-info"><i class="bi bi-info-circle-fill"></i> We can improve this model by changing the model architecture, and adding more training data. At this level I wanted to showcase my work towards implementation and deployment of Deep Learning model.</p>
             <form class="no-submit-form">
                 <div class="form-group mb-2">
-                    <label for="image_file" class="mb-2"><i class="bi bi-pencil"></i> Draw a number between 0 to 9 and click on Predict button</label>
+                    <label for="image_file" class="mb-2"><i class="bi bi-pencil"></i> Draw any number from 0 to 9 and click on "Predict" button</label>
                     <canvas id="digit_canvas" width="200" height="200" />
                 </div>     
                 <div class="form-group mb-2">
@@ -32,7 +32,7 @@
             <img src="{{ url_for("static", filename="assets/images/archi_dl_tr_serving.png") }}" />
             <h4>Model summary</h4>
             <div class="mb-2">
-                <span class="badge bg-primary p-2">Training accuracy: 99%</span>
+                <span class="badge bg-primary p-2">Training accuracy: 100%</span>
                 <span class="badge bg-primary p-2">Validation accuracy: 99%</span>
             </div>
             <pre>

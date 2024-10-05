@@ -84,8 +84,10 @@ $(document).ready(function(){
     
     function show_hide_spinner(is_show) {
         $('#error_mgs').html('')
+
+        $('.predict-btn').prop('disabled', is_show);
         if(is_show){
-            $('#spinner_block').show()
+            $('#spinner_block').show()            
         } else {
             $('#spinner_block').hide()
         }
